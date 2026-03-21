@@ -2,6 +2,8 @@ package com.proyecto.alertify.app.network
 
 import com.proyecto.alertify.app.network.dto.LoginRequest
 import com.proyecto.alertify.app.network.dto.LoginResponse
+import com.proyecto.alertify.app.network.dto.LogoutRequest
+import com.proyecto.alertify.app.network.dto.LogoutResponse
 import com.proyecto.alertify.app.network.dto.RefreshRequest
 import com.proyecto.alertify.app.network.dto.RefreshResponse
 import com.proyecto.alertify.app.network.dto.RegisterRequest
@@ -43,4 +45,16 @@ interface AuthApi {
      */
     @POST("auth/refresh")
     suspend fun refresh(@Body request: RefreshRequest): Response<RefreshResponse>
+
+    /**
+     * T17 – Cierra la sesión del usuario.
+     *
+     * Invalida el refresh token en el servidor (lo agrega a la blacklist).
+     * El access token también se invalida si viene en el header Authorization.
+     *
+     * @return [LogoutResponse] con mensaje de confirmación.
+     *         Errores: 401 (token inválido o ya expirado).
+     */
+    @POST("auth/logout")
+    suspend fun logout(@Body request: LogoutRequest): Response<LogoutResponse>
 }

@@ -5,6 +5,8 @@ import com.proyecto.alertify.app.network.ApiResult
 import com.proyecto.alertify.app.network.AuthApi
 import com.proyecto.alertify.app.network.dto.LoginRequest
 import com.proyecto.alertify.app.network.dto.LoginResponse
+import com.proyecto.alertify.app.network.dto.LogoutRequest
+import com.proyecto.alertify.app.network.dto.LogoutResponse
 import com.proyecto.alertify.app.network.dto.RegisterRequest
 import com.proyecto.alertify.app.network.dto.RegisterResponse
 import java.io.IOException
@@ -47,6 +49,19 @@ open class AuthRepository(private val authApi: AuthApi) {
         password: String
     ): ApiResult<RegisterResponse> {
         return safeApiCall { authApi.register(RegisterRequest(email, username, password)) }
+    }
+
+    /**
+     * T17 – Ejecuta `POST /auth/logout`.
+     *
+     * Invalida el refresh token en el servidor (blacklist) para que no pueda
+     * ser usado en futuras solicitudes de refresh.
+     *
+     * @param refreshToken Token de refresh a invalidar.
+     * @return [ApiResult.Success] con [LogoutResponse] o [ApiResult.Error] con detalles.
+     */
+    open suspend fun logout(refreshToken: String): ApiResult<LogoutResponse> {
+        return safeApiCall { authApi.logout(LogoutRequest(refreshToken)) }
     }
 
     /**

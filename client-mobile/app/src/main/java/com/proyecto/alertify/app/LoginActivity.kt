@@ -143,8 +143,42 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
+        // ── T17: Observar eventos globales de sesión ──────────────────────────
+        // Esto permite mostrar mensajes si la sesión expiró mientras la app
+        // estaba en background y LoginActivity es restaurada como primer Activity.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                SessionEventBus.events.collect { event -> handleSessionEvent(event) }
+            }
+        }
+
         // Verificar si ya hay sesión activa (redirige sin mostrar formulario)
         loginViewModel.checkSession()
+    }
+
+    // ── T17: Manejo de eventos de sesión ──────────────────────────────────────
+
+    /**
+     * Maneja eventos globales de sesión cuando LoginActivity está visible.
+     *
+     * Esto es un edge case pero importante: si la sesión expira mientras
+     * la app está en background y el sistema recrea LoginActivity primero,
+     * necesitamos informar al usuario del motivo.
+     */
+    private fun handleSessionEvent(event: SessionEvent) {
+        when (event) {
+            is SessionEvent.SessionExpired -> {
+                Toast.makeText(
+                    this,
+                    getString(R.string.session_expired),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            is SessionEvent.LogoutSuccess -> {
+                // No mostramos nada aquí porque el mensaje ya se mostró
+                // desde MainActivity antes de navegar
+            }
+        }
     }
 
     // ── MVVM: render + eventos ───────────────────────────────────────────

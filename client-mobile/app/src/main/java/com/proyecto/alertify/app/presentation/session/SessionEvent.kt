@@ -7,7 +7,8 @@ package com.proyecto.alertify.app.presentation.session
  * que requiere acción de la capa de UI (navegar a login, mostrar mensaje, etc.).
  *
  * A diferencia de los eventos one-shot de cada ViewModel (LoginUiEvent, RegisterUiEvent),
- * estos son **globales** y producidos desde la capa de red (TokenAuthenticator).
+ * estos son **globales** y producidos desde la capa de red (TokenAuthenticator)
+ * o desde el gestor de sesión (AuthSessionManager).
  */
 sealed class SessionEvent {
 
@@ -22,4 +23,15 @@ sealed class SessionEvent {
      * 2. Navegar a la pantalla de login limpiando el back-stack.
      */
     object SessionExpired : SessionEvent()
+
+    /**
+     * T17 – El usuario cerró sesión manualmente.
+     *
+     * Se emite tras completar el flujo de logout (backend + limpieza local).
+     *
+     * La Activity observadora debe:
+     * 1. Opcionalmente mostrar un mensaje de confirmación.
+     * 2. Navegar a la pantalla de login limpiando el back-stack.
+     */
+    object LogoutSuccess : SessionEvent()
 }
