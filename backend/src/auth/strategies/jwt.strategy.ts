@@ -4,7 +4,18 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 
+// T19: Interface del payload JWT con roles normalizados
 export interface JwtPayload {
+  sub: number;
+  email: string;
+  roles: string[];
+  jti: string;
+  iat: number;
+  exp: number;
+}
+
+// T19: Interface para el usuario autenticado en request.user
+export interface AuthenticatedUser {
   sub: number;
   email: string;
   roles: string[];
@@ -32,7 +43,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<JwtPayload> {
+  async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
+    // T19: Validar campos obligatorios del payload
     if (!payload.sub || !payload.jti) {
       throw new UnauthorizedException({
         message: 'Token inválido',
@@ -51,10 +63,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       });
     }
 
+    // T19: Normalizar roles a lowercase y manejar caso donde no existen
+    const rawRoles = Array.isArray(payload.roles) ? payload.roles : [];
+    const normalizedRoles = rawRoles.map((r) =>
+      typeof r === 'string' ? r.trim().toLowerCase() : '',
+    ).filter((r) => r.length > 0);
+
     return {
       sub: payload.sub,
       email: payload.email,
-      roles: payload.roles,
+      roles: normalizedRoles,
       jti: payload.jti,
       iat: payload.iat,
       exp: payload.exp,

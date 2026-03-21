@@ -79,15 +79,17 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  // ─── T09 + T16: Generación de Access Token (con jti) ────────────────
+  // ─── T09 + T16 + T19: Generación de Access Token (con jti y roles normalizados) ────────────────
   async generateAccessToken(
     user: { id: number; email: string },
     roles: string[],
   ): Promise<string> {
+    // T19: Normalizar roles a lowercase antes de incluirlos en el JWT
+    const normalizedRoles = roles.map((r) => r.trim().toLowerCase());
     const payload = {
       sub: user.id,
       email: user.email,
-      roles,
+      roles: normalizedRoles,
       jti: randomUUID(),
     };
     return this.jwtService.sign(payload, {

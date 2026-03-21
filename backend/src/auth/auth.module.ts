@@ -3,9 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
+import { AdminController } from './admin.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtBlacklistCleanupService } from './jwt-blacklist-cleanup.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 
 @Module({
@@ -26,8 +29,14 @@ import { UsuariosModule } from '../usuarios/usuarios.module';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtBlacklistCleanupService],
-  exports: [AuthService],
+  controllers: [AuthController, AdminController],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtBlacklistCleanupService,
+    JwtAuthGuard,
+    RolesGuard,
+  ],
+  exports: [AuthService, JwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}

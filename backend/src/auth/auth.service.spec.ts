@@ -473,7 +473,7 @@ describe('AuthService - isTokenBlacklisted()', () => {
   });
 });
 
-// ─── Tests: T16 – generateAccessToken() incluye jti ─────────────────
+// ─── Tests: T16 + T19 – generateAccessToken() incluye jti y normaliza roles ─────────────────
 
 describe('AuthService - generateAccessToken() con jti', () => {
   let service: AuthService;
@@ -506,12 +506,46 @@ describe('AuthService - generateAccessToken() con jti', () => {
       expect.objectContaining({
         sub: 1,
         email: 'test@test.com',
-        roles: ['CIUDADANO'],
+        roles: ['ciudadano'], // T19: normalizado a lowercase
         jti: expect.stringMatching(
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
         ),
       }),
       { secret: 'test-access-secret', expiresIn: '15m' },
+    );
+  });
+
+  // ─── T19: Normalización de roles ─────────────────────────────────────
+
+  it('debe normalizar roles a lowercase', async () => {
+    mockJwtService.sign.mockReturnValue('signed-token');
+
+    await service.generateAccessToken(
+      { id: 1, email: 'admin@test.com' },
+      ['ADMIN', 'CIUDADANO'],
+    );
+
+    expect(mockJwtService.sign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roles: ['admin', 'ciudadano'],
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('debe normalizar roles con espacios y mayúsculas', async () => {
+    mockJwtService.sign.mockReturnValue('signed-token');
+
+    await service.generateAccessToken(
+      { id: 1, email: 'test@test.com' },
+      ['  ADMIN  ', ' Ciudadano '],
+    );
+
+    expect(mockJwtService.sign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roles: ['admin', 'ciudadano'],
+      }),
+      expect.any(Object),
     );
   });
 });
