@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
 /**
- * T19: Tests e2e para validar RBAC en endpoints administrativos.
+ * T20: Tests e2e para validar RBAC en endpoints administrativos.
  *
  * Estos tests verifican:
  * - Caso 1: token con roles ['admin'] -> acceso permitido a ruta protegida
@@ -54,7 +54,7 @@ describe('Admin RBAC (e2e)', () => {
     await app.close();
   });
 
-  // ─── T19-1: Token con rol admin → acceso permitido ─────────────────
+  // ─── T20-1: Token con rol admin → acceso permitido ─────────────────
 
   describe('GET /admin/test - Usuario con rol admin', () => {
     it('debe permitir acceso y responder 200 con datos del usuario', async () => {
@@ -117,7 +117,7 @@ describe('Admin RBAC (e2e)', () => {
     });
   });
 
-  // ─── T19-2: Token con rol ciudadano → 403 AUTH_INSUFFICIENT_ROLE ────
+  // ─── T20-2: Token con rol ciudadano → 403 AUTH_INSUFFICIENT_ROLE ────
 
   describe('GET /admin/test - Usuario con rol ciudadano', () => {
     it('debe denegar acceso y responder 403 con código AUTH_INSUFFICIENT_ROLE', async () => {
@@ -158,7 +158,7 @@ describe('Admin RBAC (e2e)', () => {
     });
   });
 
-  // ─── T19-3: Token válido sin roles → 403 ────────────────────────────
+  // ─── T20-3: Token válido sin roles → 403 ────────────────────────────
 
   describe('GET /admin/test - Usuario sin roles', () => {
     it('debe denegar acceso cuando roles es array vacío', async () => {
@@ -180,7 +180,7 @@ describe('Admin RBAC (e2e)', () => {
     });
   });
 
-  // ─── T19-4: Token inválido → 401 ────────────────────────────────────
+  // ─── T20-4: Token inválido → 401 ────────────────────────────────────
 
   describe('GET /admin/test - Token inválido', () => {
     it('debe responder 401 cuando no hay token', async () => {
@@ -225,7 +225,7 @@ describe('Admin RBAC (e2e)', () => {
     });
   });
 
-  // ─── T19-5: Endpoint /admin/dashboard ───────────────────────────────
+  // ─── T20-5: Endpoint /admin/dashboard ───────────────────────────────
 
   describe('GET /admin/dashboard', () => {
     it('debe permitir acceso con rol admin', async () => {
@@ -261,6 +261,55 @@ describe('Admin RBAC (e2e)', () => {
         .get('/admin/dashboard')
         .set('Authorization', `Bearer ${token}`)
         .expect(403);
+    });
+  });
+
+  // ─── T20-6: Endpoint /admin/health ─────────────────────────────────
+
+  describe('GET /admin/health', () => {
+    it('debe permitir acceso con rol admin y confirmar estado ok', async () => {
+      const accessSecret =
+        configService.get<string>('JWT_ACCESS_SECRET') ??
+        configService.get<string>('JWT_SECRET');
+
+      const token = generateTestToken(
+        { sub: 1, email: 'admin@test.com', roles: ['admin'] },
+        accessSecret!,
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/admin/health')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        message: 'Acceso administrador concedido',
+        status: 'ok',
+      });
+    });
+
+    it('debe denegar acceso sin rol admin', async () => {
+      const accessSecret =
+        configService.get<string>('JWT_ACCESS_SECRET') ??
+        configService.get<string>('JWT_SECRET');
+
+      const token = generateTestToken(
+        { sub: 10, email: 'ciudadano@test.com', roles: ['ciudadano'] },
+        accessSecret!,
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/admin/health')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403);
+
+      expect(response.body.code).toBe('AUTH_INSUFFICIENT_ROLE');
+    });
+
+    it('debe responder 401 sin token', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/health')
+        .expect(401);
     });
   });
 });

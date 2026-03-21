@@ -20,7 +20,7 @@ describe('RolesGuard', () => {
     guard = new RolesGuard(reflector);
   });
 
-  // ─── T19-1: Sin roles requeridos → permite acceso ───────────────────
+  // ─── T20-1: Sin roles requeridos → permite acceso ───────────────────
 
   it('debe permitir acceso cuando no hay roles requeridos', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
@@ -36,7 +36,7 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
-  // ─── T19-2: Usuario con rol admin accede a ruta @Roles('admin') ─────
+  // ─── T20-2: Usuario con rol admin accede a ruta @Roles('admin') ─────
 
   it('debe permitir acceso cuando usuario tiene rol admin', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
@@ -71,7 +71,7 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
-  // ─── T19-3: Usuario con múltiples roles ─────────────────────────────
+  // ─── T20-3: Usuario con múltiples roles ─────────────────────────────
 
   it('debe permitir acceso si usuario tiene múltiples roles incluyendo admin', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
@@ -95,7 +95,7 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
-  // ─── T19-4: Usuario con rol ciudadano NO accede a ruta admin ────────
+  // ─── T20-4: Usuario con rol ciudadano NO accede a ruta admin ────────
 
   it('debe lanzar ForbiddenException cuando usuario no tiene rol requerido', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
@@ -128,7 +128,7 @@ describe('RolesGuard', () => {
     }
   });
 
-  // ─── T19-5: Usuario sin roles → 403 ─────────────────────────────────
+  // ─── T20-5: Usuario sin roles → 403 ─────────────────────────────────
 
   it('debe lanzar ForbiddenException cuando usuario no tiene roles', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
@@ -163,7 +163,7 @@ describe('RolesGuard', () => {
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 
-  // ─── T19-6: Sin usuario en request → 403 ────────────────────────────
+  // ─── T20-6: Sin usuario en request → 403 ────────────────────────────
 
   it('debe lanzar ForbiddenException cuando no hay usuario en request', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);

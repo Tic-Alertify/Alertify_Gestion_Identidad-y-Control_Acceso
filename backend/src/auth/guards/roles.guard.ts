@@ -9,7 +9,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 import { AuthenticatedUser } from '../strategies/jwt.strategy';
 
 /**
- * T19: Guard que verifica los roles del usuario autenticado.
+ * T20: Guard que verifica los roles del usuario autenticado.
  *
  * Debe usarse junto con JwtAuthGuard para asegurar que request.user exista:
  *   @UseGuards(JwtAuthGuard, RolesGuard)

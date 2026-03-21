@@ -1,4 +1,4 @@
-// T19: Re-export de guards, decoradores e interfaces del módulo Auth
+// T20: Re-export de guards, decoradores e interfaces del módulo Auth
 
 // Guards
 export { JwtAuthGuard } from './guards/jwt-auth.guard';
