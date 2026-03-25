@@ -2,6 +2,19 @@
 
 Base inicial del panel web administrativo (T21) en React + TypeScript + Vite.
 
+## Organización por Sprint
+
+### Sprint 3 - HU03/HU04 (Web Admin)
+
+- T21: Dashboard y reportes administrativos
+- Integración con autenticación por rol admin
+- Consumo de endpoints protegidos y manejo de sesión
+
+### Referencias de cierre
+
+- `../docs/SPRINT_CIERRE_HU03_HU04.md`
+- `../docs/CODE_REVIEW.md`
+
 ## Documento de cierre
 
 Para el cierre consolidado de HU03/HU04 (T15, T16, T17, T19, T20, T21), ver:

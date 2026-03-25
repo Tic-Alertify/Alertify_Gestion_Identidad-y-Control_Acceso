@@ -7,6 +7,58 @@
 - **Estado**: Backend funcional + App móvil con login/registro/refresh/logout conectados
 
 Este repositorio contiene el microservicio de autenticación y autorización para Alertify, con enfoque en gestión de identidad y control de acceso basado en roles (RBAC), junto con la aplicación móvil Android que consume sus endpoints.
+
+## Organización por Sprint
+
+### Sprint 1 - Backend de autenticación
+
+Cobertura principal en este README y en documentación técnica de backend.
+
+- T02: `POST /auth/registro`
+- T03: Hashing bcrypt
+- T04: Almacenamiento con rol por defecto
+- T05: Manejo de errores
+- T07: Pruebas unitarias de registro
+- T08: `POST /auth/login`
+- T09: JWT con claims
+- T10: Refresh token + rotación
+
+Referencias:
+
+- `backend/docs/testing-auth-refresh.md`
+- `docs/CODE_REVIEW.md`
+
+### Sprint 2 - Integración móvil de autenticación
+
+Cobertura detallada en README móvil.
+
+- T06: UI formulario registro (Android)
+- T11: Validación de estado de cuenta
+- T12: Manejo de errores de autenticación
+- T13: UI login móvil
+- T14: Persistencia de sesión en dispositivo
+
+Referencia:
+
+- `client-mobile/README.md`
+
+### Sprint 3 - Cierre HU03 y HU04
+
+Cobertura consolidada de cierre funcional y documental.
+
+- T15: Logout e invalidación de refresh token
+- T16: JWT blacklist y revocación inmediata
+- T17: Navegación automática a login en móvil
+- T19: Verificación de rol administrador en JWT
+- T20: Rutas admin protegidas con guards
+- T21: Panel administrativo web con métricas básicas
+
+Referencias:
+
+- `docs/SPRINT_CIERRE_HU03_HU04.md`
+- `docs/CODE_REVIEW.md`
+- `frontend/README.md`
+
 ## Funcionalidades implementadas
 
 ### Registro de usuarios (`POST /auth/registro`)

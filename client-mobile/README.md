@@ -1,6 +1,8 @@
 # AlertifyApp
 
-## Sprint 2 — Frontend Autenticación y Tokens
+## Organización por Sprint
+
+### Sprint 2 - Frontend móvil de autenticación y tokens
 
 Actualizacion Sprint 03:
 - T17 (logout y redireccion automatica a LoginActivity) verificado en cierre consolidado de sprint.
@@ -15,6 +17,12 @@ Actualizacion Sprint 03:
 | T13 | UI pantalla login móvil | OK |
 | T14 | Almacenamiento local token | OK |
 
+### Sprint 3 - Cierre HU03/HU04 (impacto móvil)
+
+- T17: Logout y redirección automática a `LoginActivity` (cumplido)
+- Evidencia funcional en clases de sesión, navegación y authenticator
+- Consolidado documental en `../docs/SPRINT_CIERRE_HU03_HU04.md`
+
 ## Documento de cierre
 
 Para la verificacion consolidada de cierre de sprint (HU03/HU04), ver:
@@ -22,6 +30,8 @@ Para la verificacion consolidada de cierre de sprint (HU03/HU04), ver:
 - `../docs/SPRINT_CIERRE_HU03_HU04.md`
 
 ---
+
+## Detalle técnico por tareas (Sprint 2 y 3)
 
 ## Interfaz de registro (T06)
 
