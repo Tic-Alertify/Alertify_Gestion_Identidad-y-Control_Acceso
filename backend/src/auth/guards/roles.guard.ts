@@ -48,9 +48,7 @@ export class RolesGuard implements CanActivate {
     const normalizedRequired = requiredRoles.map((r) => r.trim().toLowerCase());
 
     // Verificar si hay intersección entre roles del usuario y roles requeridos
-    const hasRole = normalizedRequired.some((role) =>
-      userRoles.includes(role),
-    );
+    const hasRole = normalizedRequired.some((role) => userRoles.includes(role));
 
     if (!hasRole) {
       throw new ForbiddenException({

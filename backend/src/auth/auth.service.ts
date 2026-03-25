@@ -67,10 +67,7 @@ export class AuthService {
     return bcrypt.hash(password, BCRYPT_ROUNDS);
   }
 
-  async comparePassword(
-    password: string,
-    hash: string,
-  ): Promise<boolean> {
+  async comparePassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
 
@@ -126,9 +123,7 @@ export class AuthService {
       dto.username,
     );
     if (existingUsername) {
-      throw new ConflictException(
-        'El nombre de usuario no está disponible',
-      );
+      throw new ConflictException('El nombre de usuario no está disponible');
     }
 
     try {
@@ -169,9 +164,7 @@ export class AuthService {
       if (error instanceof HttpException) {
         throw error;
       }
-      throw new InternalServerErrorException(
-        'Error al registrar el usuario',
-      );
+      throw new InternalServerErrorException('Error al registrar el usuario');
     }
   }
 
@@ -187,9 +180,7 @@ export class AuthService {
     };
   }> {
     // Buscar usuario por email con roles
-    const usuario = await this.usuariosService.findByEmailWithRoles(
-      dto.email,
-    );
+    const usuario = await this.usuariosService.findByEmailWithRoles(dto.email);
 
     if (!usuario) {
       throw new UnauthorizedException({
@@ -419,7 +410,7 @@ export class AuthService {
         if (accessToken) {
           const accessPayload = this.jwtService.verify(accessToken, {
             secret: this.accessSecret,
-          }) as { jti?: string; sub?: number; exp?: number };
+          });
 
           if (accessPayload.jti && accessPayload.exp) {
             await tx.jwtBlacklist.create({
@@ -438,7 +429,7 @@ export class AuthService {
         error &&
         typeof error === 'object' &&
         'code' in error &&
-        (error as any).code === 'P2002';
+        error.code === 'P2002';
       if (!isUniqueViolation) {
         this.logger.error('Error en transacción de logout', error);
       }

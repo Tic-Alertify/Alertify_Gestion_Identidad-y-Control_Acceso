@@ -2,6 +2,9 @@
 
 ## Sprint 2 — Frontend Autenticación y Tokens
 
+Actualizacion Sprint 03:
+- T17 (logout y redireccion automatica a LoginActivity) verificado en cierre consolidado de sprint.
+
 | Tarea | Descripción | Estado |
 |-------|------------|--------|
 | T06 | UI formulario registro (Kotlin) | OK |
@@ -11,6 +14,12 @@
 | T12 | Manejo errores autenticación | OK |
 | T13 | UI pantalla login móvil | OK |
 | T14 | Almacenamiento local token | OK |
+
+## Documento de cierre
+
+Para la verificacion consolidada de cierre de sprint (HU03/HU04), ver:
+
+- `../docs/SPRINT_CIERRE_HU03_HU04.md`
 
 ---
 

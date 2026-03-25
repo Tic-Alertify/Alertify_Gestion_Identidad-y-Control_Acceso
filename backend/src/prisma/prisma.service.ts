@@ -5,7 +5,8 @@ import { PrismaMssql } from '@prisma/adapter-mssql';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy {
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor() {
     const adapter = new PrismaMssql({
       server: process.env.DB_HOST || 'localhost',
@@ -15,7 +16,8 @@ export class PrismaService
       password: process.env.DB_PASSWORD || '',
       options: {
         encrypt: process.env.DB_ENCRYPT === 'true',
-        trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
+        trustServerCertificate:
+          process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
       },
     });
     super({ adapter });

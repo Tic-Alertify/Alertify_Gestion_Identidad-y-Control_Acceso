@@ -94,9 +94,7 @@ describe('AuthService - registro()', () => {
       email: validDto.email,
     });
 
-    await expect(service.registro(validDto)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(service.registro(validDto)).rejects.toThrow(ConflictException);
     await expect(service.registro(validDto)).rejects.toThrow(
       'El email ya está registrado',
     );
@@ -113,9 +111,7 @@ describe('AuthService - registro()', () => {
       username: validDto.username,
     });
 
-    await expect(service.registro(validDto)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(service.registro(validDto)).rejects.toThrow(ConflictException);
     await expect(service.registro(validDto)).rejects.toThrow(
       'El nombre de usuario no está disponible',
     );
@@ -172,9 +168,7 @@ describe('AuthService - registro()', () => {
     const conflictError = new ConflictException('Constraint violation');
     txMock.usuarios.create.mockRejectedValue(conflictError);
 
-    await expect(service.registro(validDto)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(service.registro(validDto)).rejects.toThrow(ConflictException);
     await expect(service.registro(validDto)).rejects.toThrow(
       'Constraint violation',
     );
@@ -336,8 +330,9 @@ describe('AuthService - logout() + T16 blacklist', () => {
   it('debe blacklistear el access token cuando se proporciona junto al refresh', async () => {
     // Refresh verify
     mockJwtService.verify
-      .mockReturnValueOnce({ sub: 42, type: 'refresh' })   // 1st call: refresh
-      .mockReturnValueOnce({                                // 2nd call: access
+      .mockReturnValueOnce({ sub: 42, type: 'refresh' }) // 1st call: refresh
+      .mockReturnValueOnce({
+        // 2nd call: access
         jti: 'uuid-abc-123',
         sub: 42,
         exp: Math.floor(Date.now() / 1000) + 900,
@@ -375,7 +370,9 @@ describe('AuthService - logout() + T16 blacklist', () => {
     // Refresh verify OK, access verify throws
     mockJwtService.verify
       .mockReturnValueOnce({ sub: 42, type: 'refresh' })
-      .mockImplementationOnce(() => { throw new Error('jwt expired'); });
+      .mockImplementationOnce(() => {
+        throw new Error('jwt expired');
+      });
     txMock.usuarios.updateMany.mockResolvedValue({ count: 1 });
 
     const result = await service.logout('valid-refresh', 'expired-access');
@@ -411,7 +408,10 @@ describe('AuthService - logout() + T16 blacklist', () => {
   it('no debe blacklistear si el access token no contiene jti', async () => {
     mockJwtService.verify
       .mockReturnValueOnce({ sub: 42, type: 'refresh' })
-      .mockReturnValueOnce({ sub: 42, exp: Math.floor(Date.now() / 1000) + 900 }); // no jti
+      .mockReturnValueOnce({
+        sub: 42,
+        exp: Math.floor(Date.now() / 1000) + 900,
+      }); // no jti
     txMock.usuarios.updateMany.mockResolvedValue({ count: 1 });
 
     const result = await service.logout('valid-refresh', 'access-sin-jti');
@@ -497,10 +497,9 @@ describe('AuthService - generateAccessToken() con jti', () => {
   it('debe incluir jti (UUID) en el payload del access token', async () => {
     mockJwtService.sign.mockReturnValue('signed-token');
 
-    await service.generateAccessToken(
-      { id: 1, email: 'test@test.com' },
-      ['CIUDADANO'],
-    );
+    await service.generateAccessToken({ id: 1, email: 'test@test.com' }, [
+      'CIUDADANO',
+    ]);
 
     expect(mockJwtService.sign).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -520,10 +519,10 @@ describe('AuthService - generateAccessToken() con jti', () => {
   it('debe normalizar roles a lowercase', async () => {
     mockJwtService.sign.mockReturnValue('signed-token');
 
-    await service.generateAccessToken(
-      { id: 1, email: 'admin@test.com' },
-      ['ADMIN', 'CIUDADANO'],
-    );
+    await service.generateAccessToken({ id: 1, email: 'admin@test.com' }, [
+      'ADMIN',
+      'CIUDADANO',
+    ]);
 
     expect(mockJwtService.sign).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -536,10 +535,10 @@ describe('AuthService - generateAccessToken() con jti', () => {
   it('debe normalizar roles con espacios y mayúsculas', async () => {
     mockJwtService.sign.mockReturnValue('signed-token');
 
-    await service.generateAccessToken(
-      { id: 1, email: 'test@test.com' },
-      ['  ADMIN  ', ' Ciudadano '],
-    );
+    await service.generateAccessToken({ id: 1, email: 'test@test.com' }, [
+      '  ADMIN  ',
+      ' Ciudadano ',
+    ]);
 
     expect(mockJwtService.sign).toHaveBeenCalledWith(
       expect.objectContaining({

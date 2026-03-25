@@ -2,6 +2,12 @@
 
 Base inicial del panel web administrativo (T21) en React + TypeScript + Vite.
 
+## Documento de cierre
+
+Para el cierre consolidado de HU03/HU04 (T15, T16, T17, T19, T20, T21), ver:
+
+- `../docs/SPRINT_CIERRE_HU03_HU04.md`
+
 ## Rutas principales
 
 - `/login`

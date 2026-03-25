@@ -28,9 +28,7 @@ export class AuthController {
   // T08 + T10: POST /auth/login
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(
-    @Body() loginDto: LoginDto,
-  ): Promise<{
+  async login(@Body() loginDto: LoginDto): Promise<{
     access_token: string;
     refresh_token: string;
     user: {

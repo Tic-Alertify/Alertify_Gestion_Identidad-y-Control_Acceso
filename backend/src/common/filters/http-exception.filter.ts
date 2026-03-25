@@ -54,7 +54,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const path: string = request.originalUrl || request.url;
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | string[] = 'Ocurrió un error inesperado. Intenta nuevamente.';
+    let message: string | string[] =
+      'Ocurrió un error inesperado. Intenta nuevamente.';
     let error = 'Internal Server Error';
     let code = 'AUTH_UNEXPECTED_ERROR';
     let details: unknown = undefined;
@@ -82,12 +83,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
 
       // Si no se proporcionó code explícito, asignar por defecto según statusCode
-      if (
-        typeof (exception.getResponse() as any)?.code !== 'string'
-      ) {
+      if (typeof (exception.getResponse() as any)?.code !== 'string') {
         code =
-          GlobalExceptionFilter.DEFAULT_CODES[statusCode] ||
-          'UNKNOWN_ERROR';
+          GlobalExceptionFilter.DEFAULT_CODES[statusCode] || 'UNKNOWN_ERROR';
       }
     } else {
       // Error no controlado → log completo internamente, respuesta genérica al cliente

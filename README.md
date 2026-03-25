@@ -1,7 +1,7 @@
 # Alertify - Módulo de Gestión de Identidad y Control de Acceso
 
 ## Información general
-- **Sprint actual**: 2 (integración móvil + sesión persistente)
+- **Sprint actual**: 3 (cierre HU03/HU04: logout, blacklist, RBAC y panel admin)
 - **Tecnologías backend**: NestJS, TypeScript, SQL Server, Prisma, JWT (access + refresh)
 - **Tecnologías móvil**: Android (Kotlin), Retrofit, OkHttp, SharedPreferences
 - **Estado**: Backend funcional + App móvil con login/registro/refresh/logout conectados
@@ -235,3 +235,4 @@ Para entornos productivos, es obligatorio usar claves robustas para `JWT_ACCESS_
 - [Testing Auth Refresh (T10)](./backend/docs/testing-auth-refresh.md) — Guía con curl/Postman para refresh y logout
 - [Colección Postman](./docs/testing/postman/)
 - [README App Móvil](./client-mobile/README.md) — Arquitectura de red, persistencia de sesión (T14), refresh token (T10) y flujos de login/registro
+- [Cierre Sprint HU03-HU04](./docs/SPRINT_CIERRE_HU03_HU04.md) — Verificación consolidada de T15, T16, T17, T19, T20 y T21

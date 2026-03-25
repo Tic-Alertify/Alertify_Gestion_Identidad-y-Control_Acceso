@@ -7,13 +7,14 @@ describe('RolesGuard', () => {
   let guard: RolesGuard;
   let reflector: Reflector;
 
-  const mockExecutionContext = (user: any): ExecutionContext => ({
-    switchToHttp: () => ({
-      getRequest: () => ({ user }),
-    }),
-    getHandler: () => jest.fn(),
-    getClass: () => jest.fn(),
-  } as unknown as ExecutionContext);
+  const mockExecutionContext = (user: any): ExecutionContext =>
+    ({
+      switchToHttp: () => ({
+        getRequest: () => ({ user }),
+      }),
+      getHandler: () => jest.fn(),
+      getClass: () => jest.fn(),
+    }) as unknown as ExecutionContext;
 
   beforeEach(() => {
     reflector = new Reflector();
@@ -85,7 +86,9 @@ describe('RolesGuard', () => {
   });
 
   it('debe permitir acceso si cualquiera de los roles requeridos coincide', () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin', 'superadmin']);
+    jest
+      .spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValue(['admin', 'superadmin']);
     const context = mockExecutionContext({
       sub: 1,
       email: 'admin@test.com',

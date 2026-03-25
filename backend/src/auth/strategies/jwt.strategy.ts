@@ -34,7 +34,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       configService.get<string>('JWT_ACCESS_SECRET') ??
       configService.get<string>('JWT_SECRET');
     if (!secret) {
-      throw new Error('JWT_ACCESS_SECRET o JWT_SECRET no está configurado en las variables de entorno');
+      throw new Error(
+        'JWT_ACCESS_SECRET o JWT_SECRET no está configurado en las variables de entorno',
+      );
     }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -65,9 +67,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // T19: Normalizar roles a lowercase y manejar caso donde no existen
     const rawRoles = Array.isArray(payload.roles) ? payload.roles : [];
-    const normalizedRoles = rawRoles.map((r) =>
-      typeof r === 'string' ? r.trim().toLowerCase() : '',
-    ).filter((r) => r.length > 0);
+    const normalizedRoles = rawRoles
+      .map((r) => (typeof r === 'string' ? r.trim().toLowerCase() : ''))
+      .filter((r) => r.length > 0);
 
     return {
       sub: payload.sub,

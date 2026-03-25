@@ -106,7 +106,11 @@ describe('Admin RBAC (e2e)', () => {
         configService.get<string>('JWT_SECRET');
 
       const token = generateTestToken(
-        { sub: 3, email: 'super@test.com', roles: ['ciudadano', 'moderador', 'admin'] },
+        {
+          sub: 3,
+          email: 'super@test.com',
+          roles: ['ciudadano', 'moderador', 'admin'],
+        },
         accessSecret!,
       );
 
@@ -184,9 +188,7 @@ describe('Admin RBAC (e2e)', () => {
 
   describe('GET /admin/test - Token inválido', () => {
     it('debe responder 401 cuando no hay token', async () => {
-      await request(app.getHttpServer())
-        .get('/admin/test')
-        .expect(401);
+      await request(app.getHttpServer()).get('/admin/test').expect(401);
     });
 
     it('debe responder 401 con token malformado', async () => {
@@ -243,7 +245,9 @@ describe('Admin RBAC (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(response.body.message).toBe('Bienvenido al panel de administración.');
+      expect(response.body.message).toBe(
+        'Bienvenido al panel de administración.',
+      );
       expect(response.body.timestamp).toBeDefined();
     });
 
@@ -307,9 +311,7 @@ describe('Admin RBAC (e2e)', () => {
     });
 
     it('debe responder 401 sin token', async () => {
-      await request(app.getHttpServer())
-        .get('/admin/health')
-        .expect(401);
+      await request(app.getHttpServer()).get('/admin/health').expect(401);
     });
   });
 });

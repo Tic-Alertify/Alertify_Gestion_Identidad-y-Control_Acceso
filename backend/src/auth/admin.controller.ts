@@ -48,9 +48,10 @@ export class AdminController {
   @Get('test')
   @Roles('admin')
   @HttpCode(HttpStatus.OK)
-  test(
-    @Request() req: { user: AuthenticatedUser },
-  ): { message: string; user: { id: number; email: string; roles: string[] } } {
+  test(@Request() req: { user: AuthenticatedUser }): {
+    message: string;
+    user: { id: number; email: string; roles: string[] };
+  } {
     return {
       message: 'Acceso administrativo concedido.',
       user: {

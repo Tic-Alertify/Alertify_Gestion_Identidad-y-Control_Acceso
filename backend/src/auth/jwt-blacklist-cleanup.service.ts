@@ -35,7 +35,7 @@ export class JwtBlacklistCleanupService {
           error &&
           typeof error === 'object' &&
           'code' in error &&
-          (error as any).code === 'ETIMEOUT';
+          error.code === 'ETIMEOUT';
 
         if (isTimeout && attempt < MAX_RETRIES) {
           this.logger.warn(
