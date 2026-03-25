@@ -8,4 +8,4 @@ export { RolesGuard } from './guards/roles.guard';
 export { Roles, ROLES_KEY } from './decorators/roles.decorator';
 
 // Interfaces
-export { JwtPayload, AuthenticatedUser } from './strategies/jwt.strategy';
+export type { JwtPayload, AuthenticatedUser } from './strategies/jwt.strategy';

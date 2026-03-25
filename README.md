@@ -284,6 +284,7 @@ Para entornos productivos, es obligatorio usar claves robustas para `JWT_ACCESS_
 ## Documentación adicional
 
 - [CODE_REVIEW](./docs/CODE_REVIEW.md)
+- [Azure SQL Setup (Backend)](./backend/docs/azure-sql-setup.md)
 - [Testing Auth Refresh (T10)](./backend/docs/testing-auth-refresh.md) — Guía con curl/Postman para refresh y logout
 - [Colección Postman](./docs/testing/postman/)
 - [README App Móvil](./client-mobile/README.md) — Arquitectura de red, persistencia de sesión (T14), refresh token (T10) y flujos de login/registro

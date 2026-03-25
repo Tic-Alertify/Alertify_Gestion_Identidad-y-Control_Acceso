@@ -2,17 +2,21 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaMssql } from '@prisma/adapter-mssql';
 
-const adapter = new PrismaMssql({
-  server: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '1433', 10),
-  database: process.env.DB_NAME || 'AlertifyDB',
-  user: process.env.DB_USER || '',
-  password: process.env.DB_PASSWORD || '',
-  options: {
-    encrypt: process.env.DB_ENCRYPT === 'true',
-    trustServerCertificate : process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
-  },
-});
+const databaseUrl = process.env.DATABASE_URL;
+const adapter = databaseUrl
+  ? new PrismaMssql(databaseUrl)
+  : new PrismaMssql({
+      server: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '1433', 10),
+      database: process.env.DB_NAME || 'AlertifyDB',
+      user: process.env.DB_USER || '',
+      password: process.env.DB_PASSWORD || '',
+      options: {
+        encrypt: process.env.DB_ENCRYPT === 'true',
+        trustServerCertificate:
+          process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
+      },
+    });
 
 const prisma = new PrismaClient({ adapter });
 
