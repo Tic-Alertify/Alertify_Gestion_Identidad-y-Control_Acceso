@@ -7,13 +7,13 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 
-describe('Usuarios paginación (e2e) - T22', () => {
+describe('Usuarios paginación y filtros (e2e) - T22/T23', () => {
   let app: INestApplication<App>;
   let jwtService: JwtService;
   let configService: ConfigService;
   let prisma: PrismaService;
 
-  const testUserPrefix = `t22_user_${Date.now()}`;
+  const testUserPrefix = `t23_user_${Date.now()}`;
 
   const generateTestToken = (
     payload: { sub: number; email: string; roles: string[] },
@@ -52,27 +52,75 @@ describe('Usuarios paginación (e2e) - T22', () => {
     configService = moduleFixture.get<ConfigService>(ConfigService);
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
-    // Crear lote de usuarios para asegurar múltiples páginas.
-    const usersToCreate = Array.from({ length: 12 }).map((_, index) => ({
-      email: `${testUserPrefix}_${index}@alertify.local`,
-      username: `${testUserPrefix}_${index}`,
-      password_hash: 'test-hash',
-      estado: 'activo',
-    }));
+    const adminRole =
+      (await prisma.roles.findFirst({
+        where: {
+          nombre: {
+            in: ['admin', 'ADMIN', 'administrador', 'ADMINISTRADOR'],
+          },
+        },
+      })) ??
+      (await prisma.roles.create({
+        data: {
+          nombre: 'admin',
+          descripcion: 'Rol admin para pruebas e2e T23',
+        },
+      }));
 
-    await prisma.usuarios.createMany({
-      data: usersToCreate,
-    });
+    const ciudadanoRole =
+      (await prisma.roles.findFirst({
+        where: {
+          nombre: {
+            in: ['ciudadano', 'CIUDADANO'],
+          },
+        },
+      })) ??
+      (await prisma.roles.create({
+        data: {
+          nombre: 'ciudadano',
+          descripcion: 'Rol ciudadano para pruebas e2e T23',
+        },
+      }));
+
+    const usersToCreate = [
+      { suffix: 'admin_1', estado: 'activo', roleId: adminRole.id },
+      { suffix: 'admin_2', estado: 'activo', roleId: adminRole.id },
+      { suffix: 'admin_3', estado: 'activo', roleId: adminRole.id },
+      { suffix: 'ciudadano_activo_1', estado: 'activo', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_activo_2', estado: 'activo', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_activo_3', estado: 'activo', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_activo_4', estado: 'activo', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_activo_5', estado: 'activo', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_bloqueado_1', estado: 'bloqueado', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_bloqueado_2', estado: 'bloqueado', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_bloqueado_3', estado: 'bloqueado', roleId: ciudadanoRole.id },
+      { suffix: 'ciudadano_bloqueado_4', estado: 'bloqueado', roleId: ciudadanoRole.id },
+    ];
+
+    for (const entry of usersToCreate) {
+      await prisma.usuarios.create({
+        data: {
+          email: `${testUserPrefix}_${entry.suffix}@alertify.local`,
+          username: `${testUserPrefix}_${entry.suffix}`,
+          password_hash: 'test-hash',
+          estado: entry.estado,
+          user_roles: {
+            create: {
+              role_id: entry.roleId,
+            },
+          },
+        },
+      });
+    }
   });
 
   afterAll(async () => {
-    await prisma.usuarios.deleteMany({
-      where: {
-        username: {
-          startsWith: testUserPrefix,
-        },
-      },
-    });
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM USER_ROLES WHERE user_id IN (SELECT id FROM USUARIOS WHERE username LIKE '${testUserPrefix}%')`,
+    );
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM USUARIOS WHERE username LIKE '${testUserPrefix}%'`,
+    );
     await app.close();
   });
 
@@ -135,6 +183,63 @@ describe('Usuarios paginación (e2e) - T22', () => {
       .expect(403);
 
     expect(response.body.code).toBe('AUTH_INSUFFICIENT_ROLE');
+  });
+
+  it('debe filtrar por estado=bloqueado (case-insensitive)', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/usuarios?estado=%20BLOQUEADO%20&limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    for (const usuario of response.body.data as Array<Record<string, unknown>>) {
+      expect(String(usuario.estado).toLowerCase()).toBe('bloqueado');
+    }
+  });
+
+  it('debe filtrar por rol=admin (case-insensitive)', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/usuarios?rol=%20ADMIN%20&limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    for (const usuario of response.body.data as Array<Record<string, unknown>>) {
+      const roles = (usuario.roles as string[]) ?? [];
+      expect(roles.length).toBeGreaterThan(0);
+      expect(roles.some((role) => ['admin', 'administrador'].includes(role))).toBe(
+        true,
+      );
+    }
+  });
+
+  it('debe aplicar intersección estado=activo y rol=ciudadano', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/usuarios?estado=activo&rol=ciudadano&limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    for (const usuario of response.body.data as Array<Record<string, unknown>>) {
+      expect(String(usuario.estado).toLowerCase()).toBe('activo');
+      const roles = (usuario.roles as string[]) ?? [];
+      expect(roles.includes('ciudadano')).toBe(true);
+    }
   });
 
   it('no debe exponer campos sensibles en la respuesta', async () => {

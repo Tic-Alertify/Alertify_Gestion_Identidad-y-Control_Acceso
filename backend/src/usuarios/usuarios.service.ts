@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, Usuarios } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { Usuarios } from '@prisma/client';
+import { FindUsuariosQueryDto } from './dto/find-usuarios-query.dto';
 
 export interface UsuarioListItem {
   id: number;
@@ -76,15 +77,58 @@ export class UsuariosService {
   }
 
   async findAllPaginated(
-    page = 1,
-    limit = 10,
+    query: FindUsuariosQueryDto,
   ): Promise<PaginatedUsuariosResponse> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const estado = query.estado?.trim().toLowerCase();
+    const rol = query.rol?.trim().toLowerCase();
+
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const skip = (safePage - 1) * safeLimit;
 
+    const where: Prisma.UsuariosWhereInput = {};
+
+    if (estado) {
+      where.estado = {
+        in: [estado, estado.toUpperCase(), estado[0].toUpperCase() + estado.slice(1)],
+      };
+    }
+
+    if (rol) {
+      const roleCandidates = new Set<string>([
+        rol,
+        rol.toUpperCase(),
+        rol[0].toUpperCase() + rol.slice(1),
+      ]);
+
+      // Normalizar alias comunes para robustecer el filtro en bases existentes.
+      if (rol === 'admin' || rol === 'administrador') {
+        roleCandidates.add('admin');
+        roleCandidates.add('ADMIN');
+        roleCandidates.add('administrador');
+        roleCandidates.add('ADMINISTRADOR');
+      }
+      if (rol === 'ciudadano') {
+        roleCandidates.add('ciudadano');
+        roleCandidates.add('CIUDADANO');
+      }
+
+      where.user_roles = {
+        some: {
+          rol: {
+            nombre: {
+              in: Array.from(roleCandidates),
+            },
+          },
+        },
+      };
+    }
+
     const [usuarios, total] = await this.prisma.$transaction([
       this.prisma.usuarios.findMany({
+        where,
         skip,
         take: safeLimit,
         orderBy: { created_at: 'desc' },
@@ -94,7 +138,7 @@ export class UsuariosService {
           },
         },
       }),
-      this.prisma.usuarios.count(),
+      this.prisma.usuarios.count({ where }),
     ]);
 
     const data: UsuarioListItem[] = usuarios.map((usuario) => ({

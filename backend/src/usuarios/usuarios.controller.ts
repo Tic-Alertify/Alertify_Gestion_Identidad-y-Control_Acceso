@@ -2,7 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { FindUsuariosQueryDto } from './dto/find-usuarios-query.dto';
 import {
   PaginatedUsuariosResponse,
   UsuariosService,
@@ -16,8 +16,8 @@ export class UsuariosController {
   @Get()
   @Roles('admin')
   async findAll(
-    @Query() query: PaginationQueryDto,
+    @Query() query: FindUsuariosQueryDto,
   ): Promise<PaginatedUsuariosResponse> {
-    return this.usuariosService.findAllPaginated(query.page, query.limit);
+    return this.usuariosService.findAllPaginated(query);
   }
 }
