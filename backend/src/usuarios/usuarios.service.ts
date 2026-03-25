@@ -83,6 +83,8 @@ export class UsuariosService {
     const limit = query.limit ?? 10;
     const estado = query.estado?.trim().toLowerCase();
     const rol = query.rol?.trim().toLowerCase();
+    const rawSearch = query.search?.trim();
+    const search = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
@@ -124,6 +126,21 @@ export class UsuariosService {
           },
         },
       };
+    }
+
+    if (search) {
+      where.OR = [
+        {
+          username: {
+            contains: search,
+          },
+        },
+        {
+          email: {
+            contains: search,
+          },
+        },
+      ];
     }
 
     const [usuarios, total] = await this.prisma.$transaction([

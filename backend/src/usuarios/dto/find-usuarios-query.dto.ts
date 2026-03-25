@@ -21,4 +21,8 @@ export class FindUsuariosQueryDto {
   @IsOptional()
   @IsString()
   rol?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

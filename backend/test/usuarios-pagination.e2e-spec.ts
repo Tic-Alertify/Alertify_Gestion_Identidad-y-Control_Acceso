@@ -7,7 +7,9 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 
-describe('Usuarios paginación y filtros (e2e) - T22/T23', () => {
+jest.setTimeout(30000);
+
+describe('Usuarios paginación, filtros y búsqueda (e2e) - T22/T23/T24', () => {
   let app: INestApplication<App>;
   let jwtService: JwtService;
   let configService: ConfigService;
@@ -86,22 +88,42 @@ describe('Usuarios paginación y filtros (e2e) - T22/T23', () => {
       { suffix: 'admin_1', estado: 'activo', roleId: adminRole.id },
       { suffix: 'admin_2', estado: 'activo', roleId: adminRole.id },
       { suffix: 'admin_3', estado: 'activo', roleId: adminRole.id },
+      { suffix: 'admin_alertify_search', estado: 'activo', roleId: adminRole.id },
       { suffix: 'ciudadano_activo_1', estado: 'activo', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_activo_2', estado: 'activo', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_activo_3', estado: 'activo', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_activo_4', estado: 'activo', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_activo_5', estado: 'activo', roleId: ciudadanoRole.id },
+      { suffix: 'johan_ciudadano', estado: 'activo', roleId: ciudadanoRole.id },
+      { suffix: 'erick_ciudadano', estado: 'activo', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_bloqueado_1', estado: 'bloqueado', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_bloqueado_2', estado: 'bloqueado', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_bloqueado_3', estado: 'bloqueado', roleId: ciudadanoRole.id },
       { suffix: 'ciudadano_bloqueado_4', estado: 'bloqueado', roleId: ciudadanoRole.id },
+      { suffix: 'gmail_probe', estado: 'activo', roleId: ciudadanoRole.id },
     ];
 
     for (const entry of usersToCreate) {
+      const username = `${testUserPrefix}_${entry.suffix}`;
+      let email = `${testUserPrefix}_${entry.suffix}@alertify.local`;
+
+      if (entry.suffix.includes('johan')) {
+        email = `johan.${testUserPrefix}@alertify.local`;
+      }
+      if (entry.suffix.includes('erick')) {
+        email = `erick.${testUserPrefix}@alertify.local`;
+      }
+      if (entry.suffix.includes('gmail')) {
+        email = `${testUserPrefix}.gmailprobe@gmail.com`;
+      }
+      if (entry.suffix.includes('admin_alertify_search')) {
+        email = `admin.${testUserPrefix}@alertify.com`;
+      }
+
       await prisma.usuarios.create({
         data: {
-          email: `${testUserPrefix}_${entry.suffix}@alertify.local`,
-          username: `${testUserPrefix}_${entry.suffix}`,
+          email,
+          username,
           password_hash: 'test-hash',
           estado: entry.estado,
           user_roles: {
@@ -112,9 +134,12 @@ describe('Usuarios paginación y filtros (e2e) - T22/T23', () => {
         },
       });
     }
-  });
+  }, 30000);
 
   afterAll(async () => {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM AUDIT_LOG WHERE user_id IN (SELECT id FROM USUARIOS WHERE username LIKE '${testUserPrefix}%')`,
+    );
     await prisma.$executeRawUnsafe(
       `DELETE FROM USER_ROLES WHERE user_id IN (SELECT id FROM USUARIOS WHERE username LIKE '${testUserPrefix}%')`,
     );
@@ -122,7 +147,7 @@ describe('Usuarios paginación y filtros (e2e) - T22/T23', () => {
       `DELETE FROM USUARIOS WHERE username LIKE '${testUserPrefix}%'`,
     );
     await app.close();
-  });
+  }, 30000);
 
   it('debe paginar con valores por defecto (page=1, limit=10)', async () => {
     const token = generateTestToken(
@@ -240,6 +265,110 @@ describe('Usuarios paginación y filtros (e2e) - T22/T23', () => {
       const roles = (usuario.roles as string[]) ?? [];
       expect(roles.includes('ciudadano')).toBe(true);
     }
+  });
+
+  it('debe buscar por search en username o email (search=johan)', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/usuarios?search=johan&limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    for (const usuario of response.body.data as Array<Record<string, unknown>>) {
+      const username = String(usuario.username).toLowerCase();
+      const email = String(usuario.email).toLowerCase();
+      expect(username.includes('johan') || email.includes('johan')).toBe(true);
+    }
+  });
+
+  it('debe buscar por email con search=gmail', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/usuarios?search=gmail&limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    for (const usuario of response.body.data as Array<Record<string, unknown>>) {
+      expect(String(usuario.email).toLowerCase().includes('gmail')).toBe(true);
+    }
+  });
+
+  it('debe aplicar estado + search simultáneamente', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/usuarios?estado=activo&search=admin&limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    for (const usuario of response.body.data as Array<Record<string, unknown>>) {
+      const username = String(usuario.username).toLowerCase();
+      const email = String(usuario.email).toLowerCase();
+      expect(String(usuario.estado).toLowerCase()).toBe('activo');
+      expect(username.includes('admin') || email.includes('admin')).toBe(true);
+    }
+  });
+
+  it('debe aplicar rol + search simultáneamente', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const response = await request(app.getHttpServer())
+      .get('/usuarios?rol=admin&search=alertify&limit=50')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    for (const usuario of response.body.data as Array<Record<string, unknown>>) {
+      const username = String(usuario.username).toLowerCase();
+      const email = String(usuario.email).toLowerCase();
+      const roles = (usuario.roles as string[]) ?? [];
+
+      expect(username.includes('alertify') || email.includes('alertify')).toBe(
+        true,
+      );
+      expect(roles.some((role) => ['admin', 'administrador'].includes(role))).toBe(
+        true,
+      );
+    }
+  });
+
+  it('debe ignorar search vacío (solo espacios)', async () => {
+    const token = generateTestToken(
+      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      getAccessSecret(),
+    );
+
+    const [withoutSearch, withBlankSearch] = await Promise.all([
+      request(app.getHttpServer())
+        .get('/usuarios?page=1&limit=10')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200),
+      request(app.getHttpServer())
+        .get('/usuarios?page=1&limit=10&search=%20%20%20')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200),
+    ]);
+
+    expect(withBlankSearch.body.meta.total).toBe(withoutSearch.body.meta.total);
+    expect(withBlankSearch.body.meta.page).toBe(withoutSearch.body.meta.page);
+    expect(withBlankSearch.body.meta.limit).toBe(withoutSearch.body.meta.limit);
   });
 
   it('no debe exponer campos sensibles en la respuesta', async () => {
