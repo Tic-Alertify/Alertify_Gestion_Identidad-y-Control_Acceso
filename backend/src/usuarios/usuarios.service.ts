@@ -222,11 +222,32 @@ export class UsuariosService {
   async updateEstado(
     id: number,
     dto: UpdateUsuarioEstadoDto,
+    actor: { sub: number; email: string; roles: string[] },
   ): Promise<UpdateUsuarioEstadoResponse> {
     const estado = dto.estado.trim().toLowerCase();
 
-    try {
-      const usuario = await this.prisma.usuarios.update({
+    return this.prisma.$transaction(async (tx) => {
+      const target = await tx.usuarios.findUnique({
+        where: { id },
+        include: {
+          user_roles: {
+            include: {
+              rol: true,
+            },
+          },
+        },
+      });
+
+      if (!target) {
+        throw new NotFoundException({
+          message: 'Usuario no encontrado',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      const previousEstado = target.estado;
+
+      const usuario = await tx.usuarios.update({
         where: { id },
         data: { estado },
         include: {
@@ -235,6 +256,13 @@ export class UsuariosService {
               rol: true,
             },
           },
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          user_id: actor.sub,
+          action: `CAMBIO_ESTADO_USUARIO|actor:${actor.sub}|target:${id}|${previousEstado}->${estado}`,
         },
       });
 
@@ -250,25 +278,13 @@ export class UsuariosService {
             .filter((role) => role.length > 0),
         },
       };
-    } catch (error: unknown) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException({
-          message: 'Usuario no encontrado',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
-      throw error;
-    }
+    });
   }
 
   async updateRol(
     id: number,
     dto: UpdateUsuarioRolDto,
-    actor: { sub: number; roles: string[] },
+    actor: { sub: number; email: string; roles: string[] },
   ): Promise<UpdateUsuarioRolResponse> {
     const nuevoRol = dto.rol.trim().toLowerCase();
 
@@ -328,6 +344,7 @@ export class UsuariosService {
       const isTargetAdmin = currentRoles.some((role) =>
         ['admin', 'administrador'].includes(role),
       );
+      const previousRole = currentRoles[0] ?? 'sin_rol';
       const isDemotingAdmin = isTargetAdmin && nuevoRol !== 'admin';
       const isSelfUpdate = actor.sub === id;
 
@@ -366,6 +383,13 @@ export class UsuariosService {
         data: {
           user_id: id,
           role_id: rolDestino.id,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          user_id: actor.sub,
+          action: `CAMBIO_ROL_USUARIO|actor:${actor.sub}|target:${id}|${previousRole}->${nuevoRol}`,
         },
       });
 

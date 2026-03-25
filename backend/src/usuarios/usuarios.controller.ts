@@ -41,8 +41,10 @@ export class UsuariosController {
   async updateEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUsuarioEstadoDto,
+    @Req() req: Request,
   ): Promise<UpdateUsuarioEstadoResponse> {
-    return this.usuariosService.updateEstado(id, dto);
+    const actor = req.user as { sub: number; email: string; roles: string[] };
+    return this.usuariosService.updateEstado(id, dto, actor);
   }
 
   @Patch(':id/rol')
@@ -52,7 +54,7 @@ export class UsuariosController {
     @Body() dto: UpdateUsuarioRolDto,
     @Req() req: Request,
   ): Promise<UpdateUsuarioRolResponse> {
-    const actor = req.user as { sub: number; roles: string[] };
+    const actor = req.user as { sub: number; email: string; roles: string[] };
     return this.usuariosService.updateRol(id, dto, actor);
   }
 }

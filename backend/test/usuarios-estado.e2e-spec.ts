@@ -20,6 +20,7 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
   let prisma: PrismaService;
 
   const testUserPrefix = `t26_user_${Date.now()}`;
+  let adminActorId = 0;
   let usuarioActivoId = 0;
   let usuarioInactivoId = 0;
 
@@ -85,6 +86,35 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
         },
       }));
 
+    const adminRole =
+      (await prisma.roles.findFirst({
+        where: {
+          nombre: {
+            in: ['admin', 'ADMIN', 'administrador', 'ADMINISTRADOR'],
+          },
+        },
+      })) ??
+      (await prisma.roles.create({
+        data: {
+          nombre: 'admin',
+          descripcion: 'Rol admin para pruebas e2e T26',
+        },
+      }));
+
+    const adminActor = await prisma.usuarios.create({
+      data: {
+        email: `${testUserPrefix}_admin@alertify.local`,
+        username: `${testUserPrefix}_admin`,
+        password_hash: 'test-hash',
+        estado: 'activo',
+        user_roles: {
+          create: {
+            role_id: adminRole.id,
+          },
+        },
+      },
+    });
+
     const usuarioActivo = await prisma.usuarios.create({
       data: {
         email: `${testUserPrefix}_activo@alertify.local`,
@@ -115,6 +145,7 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
 
     usuarioActivoId = usuarioActivo.id;
     usuarioInactivoId = usuarioInactivo.id;
+    adminActorId = adminActor.id;
   }, 30000);
 
   afterAll(async () => {
@@ -132,9 +163,22 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
 
   it('admin cambia estado de activo a inactivo -> 200', async () => {
     const token = generateTestToken(
-      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      {
+        sub: adminActorId,
+        email: `${testUserPrefix}_admin@alertify.local`,
+        roles: ['admin'],
+      },
       getAccessSecret(),
     );
+
+    const beforeAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminActorId,
+        action: {
+          startsWith: 'CAMBIO_ESTADO_USUARIO|',
+        },
+      },
+    });
 
     const response = await request(app.getHttpServer())
       .patch(`/usuarios/${usuarioActivoId}/estado`)
@@ -147,11 +191,41 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
     );
     expect(response.body.data.id).toBe(usuarioActivoId);
     expect(response.body.data.estado).toBe('inactivo');
+
+    const afterAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminActorId,
+        action: {
+          startsWith: 'CAMBIO_ESTADO_USUARIO|',
+        },
+      },
+    });
+    expect(afterAuditCount).toBe(beforeAuditCount + 1);
+
+    const latestAudit = await prisma.auditLog.findFirst({
+      where: {
+        user_id: adminActorId,
+        action: {
+          startsWith: 'CAMBIO_ESTADO_USUARIO|',
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    expect(latestAudit?.action).toContain(`actor:${adminActorId}`);
+    expect(latestAudit?.action).toContain(`target:${usuarioActivoId}`);
+    expect(latestAudit?.action).toContain('activo->inactivo');
   });
 
   it('admin cambia estado de inactivo a activo -> 200', async () => {
     const token = generateTestToken(
-      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      {
+        sub: adminActorId,
+        email: `${testUserPrefix}_admin@alertify.local`,
+        roles: ['admin'],
+      },
       getAccessSecret(),
     );
 
@@ -170,9 +244,22 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
 
   it('usuario inexistente -> 404 USER_NOT_FOUND', async () => {
     const token = generateTestToken(
-      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      {
+        sub: adminActorId,
+        email: `${testUserPrefix}_admin@alertify.local`,
+        roles: ['admin'],
+      },
       getAccessSecret(),
     );
+
+    const beforeAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminActorId,
+        action: {
+          startsWith: 'CAMBIO_ESTADO_USUARIO|',
+        },
+      },
+    });
 
     const response = await request(app.getHttpServer())
       .patch('/usuarios/99999999/estado')
@@ -181,13 +268,36 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
       .expect(404);
 
     expect(response.body.code).toBe('USER_NOT_FOUND');
+
+    const afterAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminActorId,
+        action: {
+          startsWith: 'CAMBIO_ESTADO_USUARIO|',
+        },
+      },
+    });
+    expect(afterAuditCount).toBe(beforeAuditCount);
   });
 
   it('estado inválido -> 400', async () => {
     const token = generateTestToken(
-      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      {
+        sub: adminActorId,
+        email: `${testUserPrefix}_admin@alertify.local`,
+        roles: ['admin'],
+      },
       getAccessSecret(),
     );
+
+    const beforeAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminActorId,
+        action: {
+          startsWith: 'CAMBIO_ESTADO_USUARIO|',
+        },
+      },
+    });
 
     const response = await request(app.getHttpServer())
       .patch(`/usuarios/${usuarioActivoId}/estado`)
@@ -196,6 +306,16 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
       .expect(400);
 
     expect(response.body.code).toBe('VALIDATION_ERROR');
+
+    const afterAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminActorId,
+        action: {
+          startsWith: 'CAMBIO_ESTADO_USUARIO|',
+        },
+      },
+    });
+    expect(afterAuditCount).toBe(beforeAuditCount);
   });
 
   it('usuario no admin -> 403', async () => {
@@ -215,7 +335,11 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
 
   it('no expone campos sensibles en la respuesta', async () => {
     const token = generateTestToken(
-      { sub: 1, email: 'admin@alertify.com', roles: ['admin'] },
+      {
+        sub: adminActorId,
+        email: `${testUserPrefix}_admin@alertify.local`,
+        roles: ['admin'],
+      },
       getAccessSecret(),
     );
 
@@ -228,5 +352,35 @@ describe('Usuarios cambio de estado (e2e) - T26', () => {
     expect(response.body.data).not.toHaveProperty('password_hash');
     expect(response.body.data).not.toHaveProperty('refresh_token_hash');
     expect(response.body.data).not.toHaveProperty('refresh_token_expires_at');
+  });
+
+  it('si falla audit log dentro de transacción, revierte el cambio principal', async () => {
+    const impossibleActorId = 999999999;
+    const token = generateTestToken(
+      {
+        sub: impossibleActorId,
+        email: 'missing-admin@alertify.local',
+        roles: ['admin'],
+      },
+      getAccessSecret(),
+    );
+
+    const before = await prisma.usuarios.findUnique({
+      where: { id: usuarioInactivoId },
+    });
+    expect(before?.estado).toBe('activo');
+
+    const response = await request(app.getHttpServer())
+      .patch(`/usuarios/${usuarioInactivoId}/estado`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ estado: 'inactivo' })
+      .expect(500);
+
+    expect(response.body).toBeDefined();
+
+    const after = await prisma.usuarios.findUnique({
+      where: { id: usuarioInactivoId },
+    });
+    expect(after?.estado).toBe('activo');
   });
 });

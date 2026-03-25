@@ -161,6 +161,15 @@ describe('Usuarios cambio de rol (e2e) - T25', () => {
       getAccessSecret(),
     );
 
+    const beforeAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminAId,
+        action: {
+          startsWith: 'CAMBIO_ROL_USUARIO|',
+        },
+      },
+    });
+
     const response = await request(app.getHttpServer())
       .patch(`/usuarios/${ciudadanoId}/rol`)
       .set('Authorization', `Bearer ${token}`)
@@ -170,6 +179,32 @@ describe('Usuarios cambio de rol (e2e) - T25', () => {
     expect(response.body.message).toBe('Rol del usuario actualizado correctamente');
     expect(response.body.data.id).toBe(ciudadanoId);
     expect(response.body.data.roles).toEqual(['admin']);
+
+    const afterAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminAId,
+        action: {
+          startsWith: 'CAMBIO_ROL_USUARIO|',
+        },
+      },
+    });
+    expect(afterAuditCount).toBe(beforeAuditCount + 1);
+
+    const latestAudit = await prisma.auditLog.findFirst({
+      where: {
+        user_id: adminAId,
+        action: {
+          startsWith: 'CAMBIO_ROL_USUARIO|',
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    expect(latestAudit?.action).toContain(`actor:${adminAId}`);
+    expect(latestAudit?.action).toContain(`target:${ciudadanoId}`);
+    expect(latestAudit?.action).toContain('ciudadano->admin');
   });
 
   it('admin cambia rol de admin a ciudadano cuando existen 2 admins -> 200', async () => {
@@ -216,6 +251,15 @@ describe('Usuarios cambio de rol (e2e) - T25', () => {
       getAccessSecret(),
     );
 
+    const beforeAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminAId,
+        action: {
+          startsWith: 'CAMBIO_ROL_USUARIO|',
+        },
+      },
+    });
+
     const response = await request(app.getHttpServer())
       .patch('/usuarios/99999999/rol')
       .set('Authorization', `Bearer ${token}`)
@@ -223,6 +267,16 @@ describe('Usuarios cambio de rol (e2e) - T25', () => {
       .expect(404);
 
     expect(response.body.code).toBe('USER_NOT_FOUND');
+
+    const afterAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminAId,
+        action: {
+          startsWith: 'CAMBIO_ROL_USUARIO|',
+        },
+      },
+    });
+    expect(afterAuditCount).toBe(beforeAuditCount);
   });
 
   it('rol invalido -> 400', async () => {
@@ -231,6 +285,15 @@ describe('Usuarios cambio de rol (e2e) - T25', () => {
       getAccessSecret(),
     );
 
+    const beforeAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminAId,
+        action: {
+          startsWith: 'CAMBIO_ROL_USUARIO|',
+        },
+      },
+    });
+
     const response = await request(app.getHttpServer())
       .patch(`/usuarios/${ciudadanoId}/rol`)
       .set('Authorization', `Bearer ${token}`)
@@ -238,6 +301,16 @@ describe('Usuarios cambio de rol (e2e) - T25', () => {
       .expect(400);
 
     expect(['VALIDATION_ERROR', 'ROLE_INVALID']).toContain(response.body.code);
+
+    const afterAuditCount = await prisma.auditLog.count({
+      where: {
+        user_id: adminAId,
+        action: {
+          startsWith: 'CAMBIO_ROL_USUARIO|',
+        },
+      },
+    });
+    expect(afterAuditCount).toBe(beforeAuditCount);
   });
 
   it('usuario no admin autenticado -> 403', async () => {
@@ -270,5 +343,71 @@ describe('Usuarios cambio de rol (e2e) - T25', () => {
     expect(response.body.data).not.toHaveProperty('password_hash');
     expect(response.body.data).not.toHaveProperty('refresh_token_hash');
     expect(response.body.data).not.toHaveProperty('refresh_token_expires_at');
+  });
+
+  it('si falla audit log dentro de transacción, revierte el cambio principal', async () => {
+    await request(app.getHttpServer())
+      .patch(`/usuarios/${adminBId}/rol`)
+      .set(
+        'Authorization',
+        `Bearer ${generateTestToken(
+          {
+            sub: adminAId,
+            email: 'admin@alertify.com',
+            roles: ['admin'],
+          },
+          getAccessSecret(),
+        )}`,
+      )
+      .send({ rol: 'admin' })
+      .expect(200);
+
+    const before = await prisma.usuarios.findUnique({
+      where: { id: adminBId },
+      include: {
+        user_roles: {
+          include: { rol: true },
+        },
+      },
+    });
+    const beforeRoles =
+      before?.user_roles.map((ur) => ur.rol.nombre.toLowerCase().trim()) ?? [];
+    expect(beforeRoles.some((role) => ['admin', 'administrador'].includes(role))).toBe(
+      true,
+    );
+
+    const impossibleActorId = 999999999;
+    const response = await request(app.getHttpServer())
+      .patch(`/usuarios/${adminBId}/rol`)
+      .set(
+        'Authorization',
+        `Bearer ${generateTestToken(
+          {
+            sub: impossibleActorId,
+            email: 'missing-admin@alertify.local',
+            roles: ['admin'],
+          },
+          getAccessSecret(),
+        )}`,
+      )
+      .send({ rol: 'ciudadano' })
+      .expect(500);
+
+    expect(response.body).toBeDefined();
+
+    const after = await prisma.usuarios.findUnique({
+      where: { id: adminBId },
+      include: {
+        user_roles: {
+          include: { rol: true },
+        },
+      },
+    });
+    const afterRoles =
+      after?.user_roles.map((ur) => ur.rol.nombre.toLowerCase().trim()) ?? [];
+    expect(afterRoles.some((role) => ['admin', 'administrador'].includes(role))).toBe(
+      true,
+    );
+    expect(afterRoles).not.toContain('ciudadano');
   });
 });
