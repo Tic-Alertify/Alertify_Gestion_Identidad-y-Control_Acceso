@@ -1,6 +1,8 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { EyeOff, Lock, User } from 'lucide-react';
+import backgroundPanelAdmin from '../assets/backgroundPanelAdmin 1.png';
 
 type LocationState = {
   from?: {
@@ -45,6 +47,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const redirectPath = useMemo(() => {
     const state = location.state as LocationState | null;
@@ -73,39 +76,58 @@ export default function LoginPage() {
   return (
     <div className="admin-login">
       <div className="admin-login__overlay" />
+      <img
+        src={backgroundPanelAdmin}
+        alt=""
+        aria-hidden="true"
+        className="admin-login__bg-image"
+      />
 
       <div className="admin-login__card">
-        <h1>Panel de administración</h1>
-        <p>Ingresa con tu cuenta administrativa de Alertify</p>
-
         <form onSubmit={handleSubmit}>
-          <label htmlFor="email">Usuario o email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="admin@alertify.com"
-            required
-            autoComplete="email"
-            disabled={submitting}
-          />
+          <div className="admin-login__field">
+            <User size={22} strokeWidth={1.8} className="admin-login__field-icon" />
+            <input
+              id="email"
+              type="text"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Username or Email"
+              required
+              autoComplete="email"
+              disabled={submitting}
+            />
+          </div>
 
-          <label htmlFor="password">Contraseña</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="********"
-            required
-            autoComplete="current-password"
-            disabled={submitting}
-          />
+          <div className="admin-login__field">
+            <Lock size={22} strokeWidth={1.8} className="admin-login__field-icon" />
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              required
+              autoComplete="current-password"
+              disabled={submitting}
+            />
+
+            <button
+              type="button"
+              className="admin-login__eye-toggle"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              disabled={submitting}
+            >
+              <EyeOff size={22} strokeWidth={1.8} />
+            </button>
+          </div>
+
+          <p className="admin-login__forgot">Forgot password ?</p>
 
           {errorMessage ? <div className="admin-login__error">{errorMessage}</div> : null}
 
-          <button type="submit" disabled={submitting}>
+          <button type="submit" disabled={submitting} className="admin-login__submit">
             {submitting ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>

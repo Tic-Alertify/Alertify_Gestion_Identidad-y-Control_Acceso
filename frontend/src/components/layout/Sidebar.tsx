@@ -1,7 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../auth/AuthContext';
 import { Bell, Home, FileText, LogOut } from 'lucide-react';
-import './Sidebar.css';
 
 export default function Sidebar() {
   const { logout, user } = useAuth();
@@ -13,20 +12,20 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <div className="sidebar-logo">
+    <aside className="admin-sidebar">
+      <div className="admin-sidebar__brand">
+        <div>
           <Bell size={28} />
           <span>Alertify</span>
         </div>
-        <p className="sidebar-subtitle">Panel Admin</p>
+        <p>Panel Admin</p>
       </div>
 
-      <nav className="sidebar-nav">
+      <nav className="admin-sidebar__menu">
         <NavLink
-          to="/dashboard"
+          to="/admin/dashboard"
           className={({ isActive }) =>
-            `nav-item ${isActive ? 'active' : ''}`
+            `admin-sidebar__link ${isActive ? 'admin-sidebar__link--active' : ''}`
           }
         >
           <Home size={20} />
@@ -34,9 +33,9 @@ export default function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/reportes"
+          to="/admin/reportes"
           className={({ isActive }) =>
-            `nav-item ${isActive ? 'active' : ''}`
+            `admin-sidebar__link ${isActive ? 'admin-sidebar__link--active' : ''}`
           }
         >
           <FileText size={20} />
@@ -44,20 +43,20 @@ export default function Sidebar() {
         </NavLink>
       </nav>
 
-      <div className="sidebar-footer">
+      <div className="admin-sidebar__footer">
         {user && (
-          <div className="user-info">
-            <div className="user-avatar">
+          <div className="admin-sidebar__user-info">
+            <div className="admin-sidebar__user-avatar">
               {user.username.charAt(0).toUpperCase()}
             </div>
-            <div className="user-details">
-              <span className="user-name">{user.username}</span>
-              <span className="user-role">Administrador</span>
+            <div className="admin-sidebar__user-details">
+              <span className="admin-sidebar__user-name">{user.username}</span>
+              <span className="admin-sidebar__user-role">Administrador</span>
             </div>
           </div>
         )}
 
-        <button className="logout-button" onClick={handleLogout}>
+        <button className="admin-sidebar__logout" onClick={handleLogout}>
           <LogOut size={18} />
           <span>Cerrar sesión</span>
         </button>

@@ -47,6 +47,26 @@ const mockReports: AdminReportRow[] = [
 const ADMIN_USERS_ENDPOINTS = ['/admin/usuarios', '/admin/users'];
 const ADMIN_REPORTS_ENDPOINTS = ['/admin/reportes', '/admin/reports'];
 
+const REPORT_VERIFY_CANDIDATES = [
+  { method: 'post', path: (reportId: number) => `/admin/reportes/${reportId}/verificar` },
+  { method: 'post', path: (reportId: number) => `/admin/reports/${reportId}/verify` },
+  {
+    method: 'patch',
+    path: (reportId: number) => `/admin/reportes/${reportId}`,
+    data: { estado: 'verificado' },
+  },
+] as const;
+
+const REPORT_REJECT_CANDIDATES = [
+  { method: 'post', path: (reportId: number) => `/admin/reportes/${reportId}/rechazar` },
+  { method: 'post', path: (reportId: number) => `/admin/reports/${reportId}/reject` },
+  {
+    method: 'patch',
+    path: (reportId: number) => `/admin/reportes/${reportId}`,
+    data: { estado: 'rechazado' },
+  },
+] as const;
+
 const getMockMetrics = (reports: AdminReportRow[]): DashboardMetrics => ({
   activeSessions: 99_999,
   pendingReports: reports.filter((report) => report.estado === 'pendiente').length,
@@ -120,6 +140,50 @@ const normalizeRoles = (roles: unknown): string[] => {
     })
     .map((role) => role.trim())
     .filter((role) => role.length > 0);
+};
+
+const getNumberFromRecord = (record: Record<string, unknown>, keys: string[]): number | null => {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+};
+
+const mapDashboardMetrics = (payload: unknown): DashboardMetrics => {
+  const fallback = getMockMetrics(mockReports);
+  if (!isRecord(payload)) {
+    return fallback;
+  }
+
+  const metricsSource = isRecord(payload.data) ? payload.data : payload;
+
+  const activeSessions = getNumberFromRecord(metricsSource, [
+    'activeSessions',
+    'sesionesActivas',
+    'active_sessions',
+    'active_users',
+  ]);
+
+  const pendingReports = getNumberFromRecord(metricsSource, [
+    'pendingReports',
+    'reportesPendientes',
+    'pending_reports',
+    'reports_pending',
+  ]);
+
+  return {
+    activeSessions: activeSessions ?? fallback.activeSessions,
+    pendingReports: pendingReports ?? fallback.pendingReports,
+  };
 };
 
 const mapUsers = (payload: unknown): AdminUserRow[] => {
@@ -197,7 +261,42 @@ const shouldUseMockFallback = (error: unknown): boolean => {
   return status === 404 || status === 405 || status === 501;
 };
 
+const tryReportAction = async (
+  reportId: number,
+  candidates: ReadonlyArray<{
+    method: 'post' | 'patch';
+    path: (reportId: number) => string;
+    data?: Record<string, unknown>;
+  }>,
+): Promise<boolean> => {
+  for (const candidate of candidates) {
+    try {
+      await api.request({
+        method: candidate.method,
+        url: candidate.path(reportId),
+        data: candidate.data,
+      });
+      return true;
+    } catch (error) {
+      if (shouldUseMockFallback(error)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return false;
+};
+
 const toErrorMessage = (error: unknown): string => {
+  const status = getErrorStatus(error);
+  if (status === 401) {
+    return 'Tu sesión expiró. Inicia sesión nuevamente.';
+  }
+  if (status === 403) {
+    return 'No tienes permisos para realizar esta acción.';
+  }
+
   if (error && typeof error === 'object') {
     if ('response' in error) {
       const response = (error as { response?: unknown }).response;
@@ -232,7 +331,7 @@ const adminService = {
 
   async getDashboardMetrics(): Promise<ServiceResult<DashboardMetrics>> {
     try {
-      const response = await api.get<{ message: string; timestamp: string }>(
+      const response = await api.get<{ message?: string; timestamp?: string } & Record<string, unknown>>(
         '/admin/dashboard',
       );
 
@@ -240,15 +339,19 @@ const adminService = {
         ? new Date(response.data.timestamp).toLocaleString('es-EC')
         : 'N/D';
 
+      const data = mapDashboardMetrics(response.data);
+      const isFallbackFromDashboardPayload =
+        data.activeSessions === getMockMetrics(mockReports).activeSessions &&
+        data.pendingReports === getMockMetrics(mockReports).pendingReports;
+
       return {
-        data: {
-          activeSessions: 1,
-          pendingReports: 0,
-        },
+        data,
         source: 'api',
-        note: `Métricas base conectadas a /admin/dashboard (${timestamp}).`,
+        note: isFallbackFromDashboardPayload
+          ? `Conexión a /admin/dashboard activa (${timestamp}), pero faltan campos numéricos; usando fallback temporal.`
+          : `Métricas conectadas a /admin/dashboard (${timestamp}).`,
       };
-    } catch (error) {
+    } catch {
       return {
         data: getMockMetrics(mockReports),
         source: 'mock',
@@ -307,18 +410,30 @@ const adminService = {
   },
 
   async verifyReport(reportId: number): Promise<void> {
+    const usedApi = await tryReportAction(reportId, REPORT_VERIFY_CANDIDATES);
+    if (usedApi) {
+      return;
+    }
+
     const report = mockReports.find((item) => item.id === reportId);
     if (!report) {
       throw new Error('No se encontró el reporte a verificar');
     }
+
     report.estado = 'verificado';
   },
 
   async rejectReport(reportId: number): Promise<void> {
+    const usedApi = await tryReportAction(reportId, REPORT_REJECT_CANDIDATES);
+    if (usedApi) {
+      return;
+    }
+
     const report = mockReports.find((item) => item.id === reportId);
     if (!report) {
       throw new Error('No se encontró el reporte a rechazar');
     }
+
     report.estado = 'rechazado';
   },
 

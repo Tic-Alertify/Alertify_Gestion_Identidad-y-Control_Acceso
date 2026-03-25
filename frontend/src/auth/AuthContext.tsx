@@ -1,8 +1,8 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -22,36 +22,35 @@ interface AuthProviderProps {
 }
 
 const initialState: AuthState = {
-  token: null,
   user: null,
+  accessToken: null,
+  refreshToken: null,
   isAuthenticated: false,
   isAdmin: false,
   loading: true,
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [authState, setAuthState] = useState<AuthState>(initialState);
-
-  useEffect(() => {
+  const [authState, setAuthState] = useState<AuthState>(() => {
     try {
       const session = authService.getStoredSession();
       if (!session) {
-        setAuthState({ ...initialState, loading: false });
-        return;
+        return { ...initialState, loading: false };
       }
 
-      setAuthState({
-        token: session.accessToken,
+      return {
         user: session.user,
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
         isAuthenticated: true,
         isAdmin: authService.isAdminUser(session.user),
         loading: false,
-      });
+      };
     } catch {
       authService.clearSession();
-      setAuthState({ ...initialState, loading: false });
+      return { ...initialState, loading: false };
     }
-  }, []);
+  });
 
   const login = useCallback(async (email: string, password: string) => {
     const session = await authService.login(email, password);
@@ -63,8 +62,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     setAuthState({
-      token: session.accessToken,
       user: session.user,
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
       isAuthenticated: true,
       isAdmin: true,
       loading: false,
@@ -74,8 +74,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(async () => {
     await authService.logout();
     setAuthState({
-      token: null,
       user: null,
+      accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       isAdmin: false,
       loading: false,

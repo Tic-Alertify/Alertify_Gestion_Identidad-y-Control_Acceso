@@ -1,17 +1,19 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Sidebar from './Sidebar';
-import './AdminLayout.css';
+import TopHeader from './TopHeader';
 
 interface AdminLayoutProps {
   children: ReactNode;
+  pageTitle?: string;
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   return (
     <div className="admin-layout">
       <Sidebar />
-      <main className="main-content">
-        {children}
+      <main className="admin-layout__content">
+        {pageTitle ? <TopHeader title={pageTitle} /> : null}
+        <div className="admin-layout__main">{children}</div>
       </main>
     </div>
   );
