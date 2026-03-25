@@ -1,8 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, Usuarios } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FindUsuariosQueryDto } from './dto/find-usuarios-query.dto';
 import { UpdateUsuarioEstadoDto } from './dto/update-usuario-estado.dto';
+import { UpdateUsuarioRolDto } from './dto/update-usuario-rol.dto';
 
 export interface UsuarioListItem {
   id: number;
@@ -39,6 +45,21 @@ export interface UpdateUsuarioEstadoResponse {
   message: string;
   data: UsuarioEstadoItem;
 }
+
+export interface UpdateUsuarioRolResponse {
+  message: string;
+  data: UsuarioEstadoItem;
+}
+
+const normalizeRoleForResponse = (roleName: string): string => {
+  const normalized = roleName.toLowerCase().trim();
+
+  if (normalized === 'administrador') {
+    return 'admin';
+  }
+
+  return normalized;
+};
 
 @Injectable()
 export class UsuariosService {
@@ -242,6 +263,143 @@ export class UsuariosService {
 
       throw error;
     }
+  }
+
+  async updateRol(
+    id: number,
+    dto: UpdateUsuarioRolDto,
+    actor: { sub: number; roles: string[] },
+  ): Promise<UpdateUsuarioRolResponse> {
+    const nuevoRol = dto.rol.trim().toLowerCase();
+
+    return this.prisma.$transaction(async (tx) => {
+      const target = await tx.usuarios.findUnique({
+        where: { id },
+        include: {
+          user_roles: {
+            include: {
+              rol: true,
+            },
+          },
+        },
+      });
+
+      if (!target) {
+        throw new NotFoundException({
+          message: 'Usuario no encontrado',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      const exactRoleCandidates = [
+        nuevoRol,
+        nuevoRol.toUpperCase(),
+        nuevoRol[0].toUpperCase() + nuevoRol.slice(1),
+      ];
+
+      let rolDestino = await tx.roles.findFirst({
+        where: {
+          nombre: {
+            in: exactRoleCandidates,
+          },
+        },
+      });
+
+      if (!rolDestino && nuevoRol === 'admin') {
+        rolDestino = await tx.roles.findFirst({
+          where: {
+            nombre: {
+              in: ['administrador', 'ADMINISTRADOR', 'Administrador'],
+            },
+          },
+        });
+      }
+
+      if (!rolDestino) {
+        throw new BadRequestException({
+          message: 'Rol inválido',
+          code: 'ROLE_INVALID',
+        });
+      }
+
+      const currentRoles = target.user_roles
+        .map((ur) => ur.rol.nombre.toLowerCase().trim())
+        .filter((role) => role.length > 0);
+      const isTargetAdmin = currentRoles.some((role) =>
+        ['admin', 'administrador'].includes(role),
+      );
+      const isDemotingAdmin = isTargetAdmin && nuevoRol !== 'admin';
+      const isSelfUpdate = actor.sub === id;
+
+      if (isDemotingAdmin) {
+        const adminCount = await tx.usuarios.count({
+          where: {
+            user_roles: {
+              some: {
+                rol: {
+                  nombre: {
+                    in: ['admin', 'ADMIN', 'administrador', 'ADMINISTRADOR'],
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (adminCount <= 1) {
+          throw new ForbiddenException({
+            message: isSelfUpdate
+              ? 'No se puede auto-remover el último administrador del sistema.'
+              : 'No se puede remover el último administrador del sistema.',
+            code: 'LAST_ADMIN_FORBIDDEN',
+          });
+        }
+      }
+
+      await tx.userRoles.deleteMany({
+        where: {
+          user_id: id,
+        },
+      });
+
+      await tx.userRoles.create({
+        data: {
+          user_id: id,
+          role_id: rolDestino.id,
+        },
+      });
+
+      const updated = await tx.usuarios.findUnique({
+        where: { id },
+        include: {
+          user_roles: {
+            include: {
+              rol: true,
+            },
+          },
+        },
+      });
+
+      if (!updated) {
+        throw new NotFoundException({
+          message: 'Usuario no encontrado',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      return {
+        message: 'Rol del usuario actualizado correctamente',
+        data: {
+          id: updated.id,
+          email: updated.email,
+          username: updated.username,
+          estado: updated.estado,
+          roles: updated.user_roles
+            .map((ur) => normalizeRoleForResponse(ur.rol.nombre))
+            .filter((role) => role.length > 0),
+        },
+      };
+    });
   }
 
   // Eliminado: createUsuario() - no se utiliza, la transacción se maneja en AuthService
