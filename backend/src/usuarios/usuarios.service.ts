@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Usuarios } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FindUsuariosQueryDto } from './dto/find-usuarios-query.dto';
+import { UpdateUsuarioEstadoDto } from './dto/update-usuario-estado.dto';
 
 export interface UsuarioListItem {
   id: number;
@@ -24,6 +25,19 @@ export interface PaginationMeta {
 export interface PaginatedUsuariosResponse {
   data: UsuarioListItem[];
   meta: PaginationMeta;
+}
+
+export interface UsuarioEstadoItem {
+  id: number;
+  email: string;
+  username: string;
+  estado: string;
+  roles: string[];
+}
+
+export interface UpdateUsuarioEstadoResponse {
+  message: string;
+  data: UsuarioEstadoItem;
 }
 
 @Injectable()
@@ -182,6 +196,52 @@ export class UsuariosService {
         hasPreviousPage: safePage > 1,
       },
     };
+  }
+
+  async updateEstado(
+    id: number,
+    dto: UpdateUsuarioEstadoDto,
+  ): Promise<UpdateUsuarioEstadoResponse> {
+    const estado = dto.estado.trim().toLowerCase();
+
+    try {
+      const usuario = await this.prisma.usuarios.update({
+        where: { id },
+        data: { estado },
+        include: {
+          user_roles: {
+            include: {
+              rol: true,
+            },
+          },
+        },
+      });
+
+      return {
+        message: 'Estado del usuario actualizado correctamente',
+        data: {
+          id: usuario.id,
+          email: usuario.email,
+          username: usuario.username,
+          estado: usuario.estado,
+          roles: usuario.user_roles
+            .map((ur) => ur.rol.nombre.toLowerCase().trim())
+            .filter((role) => role.length > 0),
+        },
+      };
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException({
+          message: 'Usuario no encontrado',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      throw error;
+    }
   }
 
   // Eliminado: createUsuario() - no se utiliza, la transacción se maneja en AuthService
