@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-
+.agents/
 # Build outputs
 dist/
 build/
@@ -46,3 +46,5 @@ pids/
 # OS
 .DS_Store
 Thumbs.db
+skills-lock.json
+.gitignore

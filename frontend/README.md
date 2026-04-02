@@ -10,9 +10,16 @@ Base inicial del panel web administrativo (T21) en React + TypeScript + Vite.
 - Integración con autenticación por rol admin
 - Consumo de endpoints protegidos y manejo de sesión
 
+### Sprint 4 - HU05/HU06 (Administracion de usuarios)
+
+- Integracion del panel con endpoints administrativos de usuarios
+- Soporte para listado con paginacion, filtros y busqueda
+- Operaciones criticas de cambio de rol y estado con auditoria backend
+
 ### Referencias de cierre
 
 - `../docs/SPRINT_CIERRE_HU03_HU04.md`
+- `../docs/SPRINT_CIERRE_HU05_HU06.md`
 - `../docs/CODE_REVIEW.md`
 
 ## Documento de cierre
@@ -20,6 +27,7 @@ Base inicial del panel web administrativo (T21) en React + TypeScript + Vite.
 Para el cierre consolidado de HU03/HU04 (T15, T16, T17, T19, T20, T21), ver:
 
 - `../docs/SPRINT_CIERRE_HU03_HU04.md`
+- `../docs/SPRINT_CIERRE_HU05_HU06.md`
 
 ## Rutas principales
 

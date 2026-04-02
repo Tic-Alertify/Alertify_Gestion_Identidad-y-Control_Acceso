@@ -1,7 +1,7 @@
 # Alertify - Módulo de Gestión de Identidad y Control de Acceso
 
 ## Información general
-- **Sprint actual**: 3 (cierre HU03/HU04: logout, blacklist, RBAC y panel admin)
+- **Sprint actual**: 4 (administracion de usuarios: paginacion, filtros, busqueda, cambios de rol/estado y auditoria)
 - **Tecnologías backend**: NestJS, TypeScript, SQL Server, Prisma, JWT (access + refresh)
 - **Tecnologías móvil**: Android (Kotlin), Retrofit, OkHttp, SharedPreferences
 - **Estado**: Backend funcional + App móvil con login/registro/refresh/logout conectados
@@ -58,6 +58,22 @@ Referencias:
 - `docs/SPRINT_CIERRE_HU03_HU04.md`
 - `docs/CODE_REVIEW.md`
 - `frontend/README.md`
+
+### Sprint 4 - Administracion de usuarios (HU05/HU06)
+
+Cobertura consolidada de endpoints administrativos de usuarios y auditoria transaccional.
+
+- T22: GET /usuarios con paginacion + metadata
+- T23: filtros por estado y rol
+- T24: busqueda por username/email
+- T25: PATCH /usuarios/:id/rol con validacion de ultimo admin
+- T26: PATCH /usuarios/:id/estado (activo/inactivo)
+- T27: audit logs para cambios criticos en la misma transaccion
+
+Referencias:
+
+- `docs/SPRINT_CIERRE_HU05_HU06.md`
+- `docs/CODE_REVIEW.md`
 
 ## Funcionalidades implementadas
 
@@ -289,3 +305,4 @@ Para entornos productivos, es obligatorio usar claves robustas para `JWT_ACCESS_
 - [Colección Postman](./docs/testing/postman/)
 - [README App Móvil](./client-mobile/README.md) — Arquitectura de red, persistencia de sesión (T14), refresh token (T10) y flujos de login/registro
 - [Cierre Sprint HU03-HU04](./docs/SPRINT_CIERRE_HU03_HU04.md) — Verificación consolidada de T15, T16, T17, T19, T20 y T21
+- [Cierre Sprint HU05-HU06](./docs/SPRINT_CIERRE_HU05_HU06.md) — Verificacion consolidada de T22, T23, T24, T25, T26 y T27

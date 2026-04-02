@@ -1,8 +1,62 @@
-# CODE REVIEW - Sprint 1, 2 & 3: Gestión de Identidad y Control de Acceso
+# CODE REVIEW - Sprint 1, 2, 3 & 4: Gestión de Identidad y Control de Acceso
 
 **Fecha**: 28 de Febrero de 2026  
 **Calificación General**: **97/100**  
 **Estado**: Listo para Deploy
+
+---
+
+## CIERRE SPRINT 04 - HU05 y HU06
+
+Fecha de verificacion: 2 de abril de 2026  
+Sprint evaluado: 04  
+Estado general: Cierre recomendado (cumplimiento funcional de T22, T23, T24, T25, T26 y T27)
+
+### 1. Alcance evaluado
+
+Se verificaron las tareas del sprint solicitadas:
+
+- HU05: T22, T23, T24
+- HU06: T25, T26, T27
+
+Se revisaron artefactos de backend (NestJS + Prisma + SQL Server), pruebas e2e y documentacion consolidada.
+
+### 2. Matriz de cumplimiento
+
+| Tarea | Estado | Resultado de verificacion | Evidencia principal |
+|---|---|---|---|
+| T22 - GET /usuarios con paginacion | Cumple | Listado admin con page/limit, metadatos y respuesta segura | backend/src/usuarios/usuarios.controller.ts, backend/src/usuarios/usuarios.service.ts, backend/test/usuarios-pagination.e2e-spec.ts |
+| T23 - Filtros por estado y rol | Cumple | Filtros combinables sobre el mismo endpoint | backend/src/usuarios/dto/find-usuarios-query.dto.ts, backend/src/usuarios/usuarios.service.ts, backend/test/usuarios-pagination.e2e-spec.ts |
+| T24 - Busqueda por username/email | Cumple | search integrado con filtros y paginacion | backend/src/usuarios/dto/find-usuarios-query.dto.ts, backend/src/usuarios/usuarios.service.ts, backend/test/usuarios-pagination.e2e-spec.ts |
+| T25 - PATCH /usuarios/:id/rol | Cumple | Cambio de rol con validacion de ultimo admin y transaccion en USER_ROLES | backend/src/usuarios/dto/update-usuario-rol.dto.ts, backend/src/usuarios/usuarios.service.ts, backend/test/usuarios-rol.e2e-spec.ts |
+| T26 - PATCH /usuarios/:id/estado | Cumple | Cambio de estado activo/inactivo con validaciones y salida segura | backend/src/usuarios/dto/update-usuario-estado.dto.ts, backend/src/usuarios/usuarios.service.ts, backend/test/usuarios-estado.e2e-spec.ts |
+| T27 - Audit logs cambios criticos | Cumple | Auditoria en la misma transaccion que T25/T26 con rollback si falla log | backend/src/usuarios/usuarios.service.ts, backend/test/usuarios-rol.e2e-spec.ts, backend/test/usuarios-estado.e2e-spec.ts |
+
+### 3. Evidencia ejecutada
+
+Comandos ejecutados:
+
+- npm run test:e2e -- test/usuarios-pagination.e2e-spec.ts
+- npm run test:e2e -- test/usuarios-estado.e2e-spec.ts
+- npm run test:e2e -- test/usuarios-rol.e2e-spec.ts
+
+Resultado:
+
+- T22/T23/T24: 13/13 tests OK
+- T26 (+T27): 7/7 tests OK
+- T25 (+T27): 8/8 tests OK
+
+### 4. Criterio de cierre
+
+El sprint puede cerrarse porque:
+
+1. Se completaron los endpoints administrativos de usuarios con paginacion, filtros y busqueda.
+2. Se implementaron cambios criticos (rol/estado) con seguridad por rol admin y validaciones de negocio.
+3. Se incorporo trazabilidad de auditoria transaccional sin romper la compatibilidad del esquema actual.
+
+Referencia de cierre consolidado:
+
+- docs/SPRINT_CIERRE_HU05_HU06.md
 
 ---
 
