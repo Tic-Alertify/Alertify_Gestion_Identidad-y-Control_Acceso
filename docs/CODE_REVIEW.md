@@ -1,8 +1,63 @@
-# CODE REVIEW - Sprint 1, 2, 3 & 4: Gestión de Identidad y Control de Acceso
+# CODE REVIEW - Sprint 1, 2, 3, 4 y 5: Gestion de Identidad y Control de Acceso
 
-**Fecha**: 28 de Febrero de 2026  
+**Fecha**: 20 de abril de 2026  
 **Calificación General**: **97/100**  
 **Estado**: Listo para Deploy
+
+---
+
+## CIERRE SPRINT 05 - T28 y T29
+
+Fecha de verificacion: 20 de abril de 2026  
+Sprint evaluado: 05  
+Estado general: Cierre recomendado (cumplimiento funcional de T28 y T29)
+
+### 1. Alcance evaluado
+
+Se verificaron las tareas del sprint solicitadas:
+
+- T28: confirmacion modal para acciones sensibles en el panel admin.
+- T29: tabla de usuarios con consumo real de backend (busqueda, filtros y paginacion).
+
+Se revisaron artefactos de frontend (React + TypeScript), integracion backend y documentacion consolidada.
+
+### 2. Matriz de cumplimiento
+
+| Tarea | Estado | Resultado de verificacion | Evidencia principal |
+|---|---|---|---|
+| T28 - Confirmacion modal de acciones sensibles | Cumple | Se implemento dialogo reutilizable, accesible y con confirmacion explicita antes de ejecutar PATCH | frontend/src/components/common/ConfirmDialog.tsx, frontend/src/pages/DashboardPage.tsx |
+| T29 - Tabla usuarios server-side | Cumple | Listado con page/limit/search/estado/rol conectado a `/usuarios` con estados de carga/error/vacio | frontend/src/components/dashboard/UsersTable.tsx, frontend/src/pages/DashboardPage.tsx, frontend/src/services/admin.ts |
+| T29 - Operaciones de rol/estado desde UI | Cumple | Cambio de rol y bloqueo/desbloqueo integrados con backend real y refresco de datos posterior | frontend/src/pages/DashboardPage.tsx, frontend/src/services/admin.ts |
+| Estabilizacion de acceso admin | Cumple | Normalizacion de alias `administrador -> admin` para evitar falsos 403 en rutas protegidas | backend/src/auth/guards/roles.guard.ts |
+
+### 3. Evidencia ejecutada
+
+Comandos ejecutados:
+
+- npm run lint
+- npm run build
+
+Verificaciones funcionales:
+
+- POST /auth/login (admin): OK
+- GET /admin/health con bearer admin: 200
+- GET /usuarios?page=1&limit=5 con bearer admin: 200
+
+Resultado:
+
+- Frontend admin compila correctamente y consume endpoints reales de usuarios.
+
+### 4. Criterio de cierre
+
+El sprint puede cerrarse porque:
+
+1. T28 incorpora confirmacion previa para acciones criticas y mejora de accesibilidad.
+2. T29 integra la gestion de usuarios con backend real y flujo server-side completo.
+3. Se resolvieron bloqueos de acceso administrativo detectados durante la validacion integrada.
+
+Referencia de cierre consolidado:
+
+- docs/SPRINT_CIERRE_SPRINT05_T28_T29.md
 
 ---
 

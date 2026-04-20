@@ -1,10 +1,10 @@
 # Alertify - Módulo de Gestión de Identidad y Control de Acceso
 
 ## Información general
-- **Sprint actual**: 4 (administracion de usuarios: paginacion, filtros, busqueda, cambios de rol/estado y auditoria)
+- **Sprint actual**: 5 (consolidacion frontend admin: tabla de usuarios server-side y confirmacion modal para acciones sensibles)
 - **Tecnologías backend**: NestJS, TypeScript, SQL Server, Prisma, JWT (access + refresh)
 - **Tecnologías móvil**: Android (Kotlin), Retrofit, OkHttp, SharedPreferences
-- **Estado**: Backend funcional + App móvil con login/registro/refresh/logout conectados
+- **Estado**: Backend funcional + app movil conectada + panel web admin con gestion de usuarios integrada
 
 Este repositorio contiene el microservicio de autenticación y autorización para Alertify, con enfoque en gestión de identidad y control de acceso basado en roles (RBAC), junto con la aplicación móvil Android que consume sus endpoints.
 
@@ -74,6 +74,18 @@ Referencias:
 
 - `docs/SPRINT_CIERRE_HU05_HU06.md`
 - `docs/CODE_REVIEW.md`
+
+### Sprint 5 - Consolidacion frontend admin (T28/T29)
+
+Cobertura consolidada de UX segura y consumo real de endpoints de usuarios en el panel administrativo web.
+
+- T28: confirmacion modal reutilizable para acciones sensibles (bloquear/desbloquear y cambios de rol)
+- T29: tabla de usuarios con busqueda, filtros, paginacion server-side y acciones criticas integradas al backend
+
+Referencias:
+
+- `docs/SPRINT_CIERRE_SPRINT05_T28_T29.md`
+- `frontend/README.md`
 
 ## Funcionalidades implementadas
 
@@ -306,3 +318,4 @@ Para entornos productivos, es obligatorio usar claves robustas para `JWT_ACCESS_
 - [README App Móvil](./client-mobile/README.md) — Arquitectura de red, persistencia de sesión (T14), refresh token (T10) y flujos de login/registro
 - [Cierre Sprint HU03-HU04](./docs/SPRINT_CIERRE_HU03_HU04.md) — Verificación consolidada de T15, T16, T17, T19, T20 y T21
 - [Cierre Sprint HU05-HU06](./docs/SPRINT_CIERRE_HU05_HU06.md) — Verificacion consolidada de T22, T23, T24, T25, T26 y T27
+- [Cierre Sprint 05 (T28/T29)](./docs/SPRINT_CIERRE_SPRINT05_T28_T29.md) — Verificacion consolidada de confirmacion modal y tabla de usuarios server-side en frontend admin
