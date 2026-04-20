@@ -338,6 +338,64 @@ body {
   padding: 0 10px;
 }
 
+.admin-btn--danger {
+  background: var(--admin-danger);
+  border-color: var(--admin-danger);
+  color: var(--admin-white);
+}
+
+.admin-btn--danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.admin-btn:focus-visible,
+.admin-users-search input:focus-visible,
+.admin-users-filters select:focus-visible,
+.admin-row-actions select:focus-visible {
+  outline: 2px solid var(--admin-info);
+  outline-offset: 2px;
+}
+
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 1200;
+}
+
+.confirm-dialog {
+  width: min(520px, 100%);
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-white);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirm-dialog__title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #111827;
+}
+
+.confirm-dialog__description {
+  margin: 0;
+  color: var(--admin-muted);
+  line-height: 1.45;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .admin-users-filters {
   display: flex;
   flex-wrap: wrap;
@@ -674,6 +732,11 @@ body {
   .admin-pagination {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .confirm-dialog__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
   }
 }
 

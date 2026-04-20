@@ -3,6 +3,7 @@ import { AlertTriangle, Users } from 'lucide-react';
 import AdminLayout from '../components/layout/AdminLayout';
 import MetricCard from '../components/dashboard/MetricCard';
 import UsersTable from '../components/dashboard/UsersTable';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import adminUsersService from '../services/admin';
 import adminService from '../services/adminService';
 import type {
@@ -36,6 +37,26 @@ const getPrimaryRole = (user: User): EditableUserRole => {
   return firstRole === 'admin' || firstRole === 'administrador' ? 'admin' : 'ciudadano';
 };
 
+type PendingConfirmation =
+  | {
+      type: 'status';
+      user: User;
+      nextStatus: 'activo' | 'inactivo';
+      title: string;
+      description: string;
+      confirmLabel: string;
+      successMessage: string;
+    }
+  | {
+      type: 'role';
+      user: User;
+      nextRole: EditableUserRole;
+      title: string;
+      description: string;
+      confirmLabel: string;
+      successMessage: string;
+    };
+
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -50,6 +71,8 @@ export default function DashboardPage() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [dataNote, setDataNote] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const [actionState, setActionState] = useState<{
     userId: number;
@@ -169,40 +192,82 @@ export default function DashboardPage() {
     setUsersFilters(DEFAULT_USERS_FILTERS);
   };
 
-  const handleToggleStatus = async (user: User) => {
+  const handleToggleStatus = (user: User) => {
     const currentStatus = user.estado ?? 'activo';
     const nextStatus: 'activo' | 'inactivo' = currentStatus === 'activo' ? 'inactivo' : 'activo';
+    const blocking = nextStatus === 'inactivo';
 
-    setUsersError(null);
-    setActionState({ userId: user.id, type: 'status' });
-
-    try {
-      await adminUsersService.updateUserStatus(user.id, nextStatus);
-      setSuccessMessage(`Estado de ${user.username} actualizado a ${nextStatus}.`);
-      await refreshUsers();
-    } catch (requestError) {
-      setUsersError(adminUsersService.errorToMessage(requestError));
-    } finally {
-      setActionState(null);
-    }
+    setPendingConfirmation({
+      type: 'status',
+      user,
+      nextStatus,
+      title: blocking ? 'Confirmar bloqueo de usuario' : 'Confirmar desbloqueo de usuario',
+      description: blocking
+        ? `¿Está seguro que desea revocar el acceso a ${user.username}?`
+        : `¿Está seguro que desea restablecer el acceso de ${user.username}?`,
+      confirmLabel: blocking ? 'Sí, bloquear' : 'Sí, desbloquear',
+      successMessage: `Estado de ${user.username} actualizado a ${nextStatus}.`,
+    });
   };
 
-  const handleChangeRole = async (user: User, nextRole: EditableUserRole) => {
+  const handleChangeRole = (user: User, nextRole: EditableUserRole) => {
     const currentRole = getPrimaryRole(user);
     if (currentRole === nextRole) {
       return;
     }
 
+    const assigningAdmin = nextRole === 'admin';
+
+    setPendingConfirmation({
+      type: 'role',
+      user,
+      nextRole,
+      title: assigningAdmin ? 'Confirmar asignación de rol administrador' : 'Confirmar revocación de rol administrador',
+      description: assigningAdmin
+        ? `¿Está seguro que desea asignar rol de administrador a ${user.username}?`
+        : `¿Está seguro que desea remover privilegios de administrador a ${user.username}?`,
+      confirmLabel: assigningAdmin ? 'Sí, asignar admin' : 'Sí, cambiar rol',
+      successMessage: `Rol de ${user.username} actualizado a ${nextRole}.`,
+    });
+  };
+
+  const closeConfirmation = () => {
+    if (confirmLoading) {
+      return;
+    }
+
+    setPendingConfirmation(null);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingConfirmation) {
+      return;
+    }
+
     setUsersError(null);
-    setActionState({ userId: user.id, type: 'role' });
+    setConfirmLoading(true);
+    setActionState({ userId: pendingConfirmation.user.id, type: pendingConfirmation.type });
 
     try {
-      await adminUsersService.updateUserRole(user.id, nextRole);
-      setSuccessMessage(`Rol de ${user.username} actualizado a ${nextRole}.`);
+      if (pendingConfirmation.type === 'status') {
+        await adminUsersService.updateUserStatus(
+          pendingConfirmation.user.id,
+          pendingConfirmation.nextStatus,
+        );
+      } else {
+        await adminUsersService.updateUserRole(
+          pendingConfirmation.user.id,
+          pendingConfirmation.nextRole,
+        );
+      }
+
+      setSuccessMessage(pendingConfirmation.successMessage);
+      setPendingConfirmation(null);
       await refreshUsers();
     } catch (requestError) {
       setUsersError(adminUsersService.errorToMessage(requestError));
     } finally {
+      setConfirmLoading(false);
       setActionState(null);
     }
   };
@@ -250,6 +315,17 @@ export default function DashboardPage() {
           onChangeRole={handleChangeRole}
         />
       </section>
+
+      <ConfirmDialog
+        open={Boolean(pendingConfirmation)}
+        title={pendingConfirmation?.title ?? ''}
+        description={pendingConfirmation?.description ?? ''}
+        confirmLabel={pendingConfirmation?.confirmLabel ?? 'Confirmar'}
+        cancelLabel="Cancelar"
+        loading={confirmLoading}
+        onCancel={closeConfirmation}
+        onConfirm={handleConfirmAction}
+      />
     </AdminLayout>
   );
 }

@@ -51,6 +51,9 @@ const statusLabel = (status: UserStatus): string => {
 const nextStatus = (status: UserStatus): 'activo' | 'inactivo' =>
   status === 'activo' ? 'inactivo' : 'activo';
 
+const statusActionLabel = (status: UserStatus): string =>
+  nextStatus(status) === 'inactivo' ? 'Bloquear' : 'Desbloquear';
+
 const totalPagesToDisplay = (meta: PaginationMeta): number =>
   meta.totalPages > 0 ? meta.totalPages : 1;
 
@@ -201,7 +204,7 @@ export default function UsersTable({
                             disabled={pending || loading}
                             onClick={() => onToggleStatus(user)}
                           >
-                            {nextStatus(status) === 'activo' ? 'Activar' : 'Desactivar'}
+                            {statusActionLabel(status)}
                           </button>
 
                           {pending ? (
