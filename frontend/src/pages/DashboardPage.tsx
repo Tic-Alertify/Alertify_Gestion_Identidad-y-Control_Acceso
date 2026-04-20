@@ -1,56 +1,116 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Users } from 'lucide-react';
 import AdminLayout from '../components/layout/AdminLayout';
 import MetricCard from '../components/dashboard/MetricCard';
 import UsersTable from '../components/dashboard/UsersTable';
+import adminUsersService from '../services/admin';
 import adminService from '../services/adminService';
-import type { AdminUserRow, DashboardMetrics } from '../types';
+import type {
+  DashboardMetrics,
+  EditableUserRole,
+  PaginationMeta,
+  User,
+  UserFilters,
+  UserStatus,
+} from '../types';
+
+const DEFAULT_USERS_META: PaginationMeta = {
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+};
+
+const DEFAULT_USERS_FILTERS: UserFilters = {
+  page: 1,
+  limit: 10,
+  search: '',
+  role: '',
+  status: '',
+};
+
+const getPrimaryRole = (user: User): EditableUserRole => {
+  const firstRole = user.roles[0]?.toLowerCase();
+  return firstRole === 'admin' || firstRole === 'administrador' ? 'admin' : 'ciudadano';
+};
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [users, setUsers] = useState<AdminUserRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersMeta, setUsersMeta] = useState<PaginationMeta>(DEFAULT_USERS_META);
+  const [usersFilters, setUsersFilters] = useState<UserFilters>(DEFAULT_USERS_FILTERS);
+  const [searchInput, setSearchInput] = useState('');
+
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
+
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [usersError, setUsersError] = useState<string | null>(null);
   const [dataNote, setDataNote] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [actionState, setActionState] = useState<{
+    userId: number;
+    type: 'status' | 'role';
+  } | null>(null);
+
+  const loadUsers = useCallback(async (filters: UserFilters) => {
+    setUsersLoading(true);
+    setUsersError(null);
+
+    try {
+      const response = await adminUsersService.getUsers(filters);
+      setUsers(response.data);
+      setUsersMeta(response.meta);
+    } catch (requestError) {
+      setUsersError(adminUsersService.errorToMessage(requestError));
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadDashboard = async () => {
-      setLoading(true);
-      setError(null);
+    const loadMetrics = async () => {
+      setMetricsLoading(true);
+      setGlobalError(null);
       setDataNote(null);
 
       try {
         await adminService.healthCheck();
       } catch {
-        setError('No fue posible validar acceso administrativo.');
-        setLoading(false);
+        setGlobalError('No fue posible validar acceso administrativo.');
+        setMetricsLoading(false);
         return;
       }
 
       try {
-        const [metricsResult, usersResult] = await Promise.all([
-          adminService.getDashboardMetrics(),
-          adminService.getUsers(),
-        ]);
-
+        const metricsResult = await adminService.getDashboardMetrics();
         setMetrics(metricsResult.data);
-        setUsers(usersResult.data);
-
-        const notes = [metricsResult.note, usersResult.note].filter(
-          (note): note is string => Boolean(note),
-        );
-        if (notes.length > 0) {
-          setDataNote(notes.join(' '));
-        }
+        setDataNote(metricsResult.note || null);
       } catch (requestError) {
-        setError(adminService.errorToMessage(requestError));
+        setGlobalError(adminService.errorToMessage(requestError));
       } finally {
-        setLoading(false);
+        setMetricsLoading(false);
       }
     };
 
-    void loadDashboard();
+    void loadMetrics();
   }, []);
+
+  useEffect(() => {
+    void loadUsers(usersFilters);
+  }, [usersFilters, loadUsers]);
+
+  useEffect(() => {
+    if (!successMessage) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setSuccessMessage(null), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [successMessage]);
 
   const safeMetrics = useMemo(
     () =>
@@ -61,9 +121,96 @@ export default function DashboardPage() {
     [metrics],
   );
 
+  const refreshUsers = async () => {
+    await loadUsers(usersFilters);
+  };
+
+  const handleSearchSubmit = () => {
+    setUsersFilters((prev) => ({
+      ...prev,
+      page: 1,
+      search: searchInput.trim(),
+    }));
+  };
+
+  const handleRoleFilterChange = (role: EditableUserRole | '') => {
+    setUsersFilters((prev) => ({
+      ...prev,
+      page: 1,
+      role,
+    }));
+  };
+
+  const handleStatusFilterChange = (status: UserStatus | '') => {
+    setUsersFilters((prev) => ({
+      ...prev,
+      page: 1,
+      status,
+    }));
+  };
+
+  const handleLimitChange = (limit: number) => {
+    setUsersFilters((prev) => ({
+      ...prev,
+      page: 1,
+      limit,
+    }));
+  };
+
+  const handlePageChange = (page: number) => {
+    setUsersFilters((prev) => ({
+      ...prev,
+      page,
+    }));
+  };
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setUsersFilters(DEFAULT_USERS_FILTERS);
+  };
+
+  const handleToggleStatus = async (user: User) => {
+    const currentStatus = user.estado ?? 'activo';
+    const nextStatus: 'activo' | 'inactivo' = currentStatus === 'activo' ? 'inactivo' : 'activo';
+
+    setUsersError(null);
+    setActionState({ userId: user.id, type: 'status' });
+
+    try {
+      await adminUsersService.updateUserStatus(user.id, nextStatus);
+      setSuccessMessage(`Estado de ${user.username} actualizado a ${nextStatus}.`);
+      await refreshUsers();
+    } catch (requestError) {
+      setUsersError(adminUsersService.errorToMessage(requestError));
+    } finally {
+      setActionState(null);
+    }
+  };
+
+  const handleChangeRole = async (user: User, nextRole: EditableUserRole) => {
+    const currentRole = getPrimaryRole(user);
+    if (currentRole === nextRole) {
+      return;
+    }
+
+    setUsersError(null);
+    setActionState({ userId: user.id, type: 'role' });
+
+    try {
+      await adminUsersService.updateUserRole(user.id, nextRole);
+      setSuccessMessage(`Rol de ${user.username} actualizado a ${nextRole}.`);
+      await refreshUsers();
+    } catch (requestError) {
+      setUsersError(adminUsersService.errorToMessage(requestError));
+    } finally {
+      setActionState(null);
+    }
+  };
+
   return (
     <AdminLayout pageTitle="Panel de administrador">
-      {error ? <div className="admin-banner admin-banner--error">{error}</div> : null}
+      {globalError ? <div className="admin-banner admin-banner--error">{globalError}</div> : null}
+      {successMessage ? <div className="admin-banner admin-banner--success">{successMessage}</div> : null}
       {dataNote ? <div className="admin-banner admin-banner--info">{dataNote}</div> : null}
 
       <section className="admin-metrics-grid">
@@ -71,20 +218,37 @@ export default function DashboardPage() {
           title="Sesiones activas"
           value={safeMetrics.activeSessions}
           icon={Users}
-          loading={loading}
+          loading={metricsLoading}
         />
 
         <MetricCard
           title="Reportes pendientes"
           value={safeMetrics.pendingReports}
           icon={AlertTriangle}
-          loading={loading}
+          loading={metricsLoading}
         />
       </section>
 
       <section className="admin-card">
         <h2>Directorio de usuarios</h2>
-        <UsersTable users={users} loading={loading} error={null} />
+        <UsersTable
+          users={users}
+          filters={usersFilters}
+          searchValue={searchInput}
+          meta={usersMeta}
+          loading={usersLoading}
+          error={usersError}
+          actionState={actionState}
+          onSearchValueChange={setSearchInput}
+          onSearchSubmit={handleSearchSubmit}
+          onRoleFilterChange={handleRoleFilterChange}
+          onStatusFilterChange={handleStatusFilterChange}
+          onLimitChange={handleLimitChange}
+          onPageChange={handlePageChange}
+          onResetFilters={handleResetFilters}
+          onToggleStatus={handleToggleStatus}
+          onChangeRole={handleChangeRole}
+        />
       </section>
     </AdminLayout>
   );

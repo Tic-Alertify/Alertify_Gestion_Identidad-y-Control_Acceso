@@ -1,5 +1,18 @@
-// Tipos de usuario y autenticación
+export type UserStatus = 'activo' | 'inactivo' | 'bloqueado';
+export type UserRole = 'admin' | 'ciudadano' | 'administrador';
+export type EditableUserRole = 'admin' | 'ciudadano';
+export type ReportStatus = 'pendiente' | 'verificado' | 'rechazado';
+
 export interface User {
+  id: number;
+  email: string;
+  username: string;
+  roles: UserRole[];
+  estado?: UserStatus;
+  created_at?: string;
+}
+
+export interface AuthUser {
   id: number;
   email: string;
   username: string;
@@ -9,19 +22,17 @@ export interface User {
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
-  user: User;
+  user: AuthUser;
 }
 
 export interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   loading: boolean;
 }
-
-export type AuthUser = User;
 
 export interface AuthSession {
   accessToken: string;
@@ -35,15 +46,40 @@ export interface LoginApiResponse {
   user?: Partial<AuthUser>;
 }
 
-export type UserStatus = 'activo' | 'inactivo' | 'bloqueado';
-export type ReportStatus = 'pendiente' | 'verificado' | 'rechazado';
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
 
-export interface AdminUserRow {
-  id: number;
-  username: string;
-  email: string;
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export interface UserFilters {
+  page: number;
+  limit: number;
+  search?: string;
+  role?: EditableUserRole | '';
+  status?: UserStatus | '';
+  extra?: Record<string, string | number | undefined>;
+}
+
+export interface UpdateUserStatusPayload {
+  estado: 'activo' | 'inactivo';
+}
+
+export interface UpdateUserRolePayload {
+  rol: EditableUserRole;
+}
+
+export interface AdminUserRow extends User {
   estado: UserStatus;
-  roles: string[];
+  roles: UserRole[];
 }
 
 export interface AdminReportRow {
@@ -66,20 +102,12 @@ export interface ServiceResult<T> {
   note?: string;
 }
 
-// Tipos para el dashboard
 export interface DashboardStats {
   activeSessions: number;
   pendingReports: number;
 }
 
-export interface UserListItem {
-  id: number;
-  username: string;
-  email: string;
-  estado: string;
-  roles: string[];
-  created_at: string;
-}
+export type UserListItem = AdminUserRow;
 
 export interface Report {
   id: number;
@@ -89,7 +117,6 @@ export interface Report {
   fecha: string;
 }
 
-// API Response types
 export interface ApiError {
   message: string;
   code?: string;

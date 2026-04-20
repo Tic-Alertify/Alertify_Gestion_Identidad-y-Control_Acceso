@@ -5,6 +5,7 @@ import type {
   DashboardMetrics,
   ReportStatus,
   ServiceResult,
+  UserRole,
   UserStatus,
 } from '../types';
 
@@ -109,7 +110,16 @@ const normalizeReportStatus = (status: unknown): ReportStatus => {
   return 'pendiente';
 };
 
-const normalizeRoles = (roles: unknown): string[] => {
+const normalizeRole = (role: string): UserRole => {
+  const normalized = role.trim().toLowerCase();
+  if (normalized === 'admin' || normalized === 'administrador') {
+    return 'admin';
+  }
+
+  return 'ciudadano';
+};
+
+const normalizeRoles = (roles: unknown): UserRole[] => {
   if (!Array.isArray(roles)) {
     return [];
   }
@@ -139,7 +149,8 @@ const normalizeRoles = (roles: unknown): string[] => {
       return [];
     })
     .map((role) => role.trim())
-    .filter((role) => role.length > 0);
+    .filter((role) => role.length > 0)
+    .map((role) => normalizeRole(role));
 };
 
 const getNumberFromRecord = (record: Record<string, unknown>, keys: string[]): number | null => {

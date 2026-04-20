@@ -1,161 +1,314 @@
 import api from './api';
-import type { DashboardStats, UserListItem, Report } from '../types';
+import type {
+  PaginatedResponse,
+  PaginationMeta,
+  UpdateUserRolePayload,
+  UpdateUserStatusPayload,
+  User,
+  UserFilters,
+  UserRole,
+  UserStatus,
+} from '../types';
 
-// Datos mock para usuarios (mientras no exista el endpoint)
-const mockUsers: UserListItem[] = [
-  {
-    id: 1,
-    username: 'admin',
-    email: 'admin@alertify.com',
-    estado: 'activo',
-    roles: ['admin'],
-    created_at: '2024-01-15T10:00:00Z',
-  },
-  {
-    id: 2,
-    username: 'maria_garcia',
-    email: 'maria@email.com',
-    estado: 'activo',
-    roles: ['ciudadano'],
-    created_at: '2024-02-20T14:30:00Z',
-  },
-  {
-    id: 3,
-    username: 'juan_perez',
-    email: 'juan@email.com',
-    estado: 'activo',
-    roles: ['ciudadano'],
-    created_at: '2024-03-10T09:15:00Z',
-  },
-  {
-    id: 4,
-    username: 'carlos_lopez',
-    email: 'carlos@email.com',
-    estado: 'bloqueado',
-    roles: ['ciudadano'],
-    created_at: '2024-03-12T16:45:00Z',
-  },
-  {
-    id: 5,
-    username: 'ana_martinez',
-    email: 'ana@email.com',
-    estado: 'inactivo',
-    roles: ['ciudadano'],
-    created_at: '2024-03-18T11:20:00Z',
-  },
-];
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 50;
 
-// Datos mock para reportes (mientras no exista el endpoint)
-const mockReports: Report[] = [
-  {
-    id: 1,
-    titulo: 'Bache en Av. Principal',
-    usuario: 'maria_garcia',
-    estado: 'pendiente',
-    fecha: '2024-03-20T08:30:00Z',
-  },
-  {
-    id: 2,
-    titulo: 'Semáforo dañado',
-    usuario: 'juan_perez',
-    estado: 'pendiente',
-    fecha: '2024-03-19T15:45:00Z',
-  },
-  {
-    id: 3,
-    titulo: 'Fuga de agua',
-    usuario: 'ana_martinez',
-    estado: 'verificado',
-    fecha: '2024-03-18T10:20:00Z',
-  },
-  {
-    id: 4,
-    titulo: 'Alumbrado público',
-    usuario: 'carlos_lopez',
-    estado: 'pendiente',
-    fecha: '2024-03-17T19:00:00Z',
-  },
-  {
-    id: 5,
-    titulo: 'Basura acumulada',
-    usuario: 'maria_garcia',
-    estado: 'rechazado',
-    fecha: '2024-03-16T07:15:00Z',
-  },
-];
+type UnknownRecord = Record<string, unknown>;
 
-export const adminService = {
-  // Health check del panel admin
-  async healthCheck(): Promise<{ message: string; status: string }> {
-    const response = await api.get('/admin/health');
-    return response.data;
-  },
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === 'object' && value !== null;
 
-  // Obtener info del dashboard
-  async getDashboard(): Promise<{ message: string; timestamp: string }> {
-    const response = await api.get('/admin/dashboard');
-    return response.data;
-  },
+const parseNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
 
-  // Obtener estadísticas del dashboard
-  // TODO: Reemplazar con endpoint real cuando esté disponible
-  async getStats(): Promise<DashboardStats> {
-    // Simular delay de red
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
 
-    // Mock: calcular stats basados en datos mock
-    const pendingReports = mockReports.filter((r) => r.estado === 'pendiente').length;
+  return null;
+};
+
+const parseBoolean = (value: unknown): boolean | null => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') {
+      return true;
+    }
+    if (normalized === 'false') {
+      return false;
+    }
+  }
+
+  return null;
+};
+
+const normalizeRole = (value: unknown): UserRole => {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+  if (normalized === 'admin' || normalized === 'administrador') {
+    return 'admin';
+  }
+
+  return 'ciudadano';
+};
+
+const normalizeStatus = (value: unknown): UserStatus => {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+  if (normalized === 'bloqueado') {
+    return 'bloqueado';
+  }
+
+  if (normalized === 'inactivo') {
+    return 'inactivo';
+  }
+
+  return 'activo';
+};
+
+const normalizeRoles = (value: unknown): UserRole[] => {
+  if (!Array.isArray(value)) {
+    return ['ciudadano'];
+  }
+
+  const roles = value
+    .flatMap((role) => {
+      if (typeof role === 'string') {
+        return [normalizeRole(role)];
+      }
+
+      if (!isRecord(role)) {
+        return [];
+      }
+
+      if (typeof role.nombre === 'string') {
+        return [normalizeRole(role.nombre)];
+      }
+
+      if (typeof role.name === 'string') {
+        return [normalizeRole(role.name)];
+      }
+
+      if (isRecord(role.rol) && typeof role.rol.nombre === 'string') {
+        return [normalizeRole(role.rol.nombre)];
+      }
+
+      return [];
+    })
+    .filter((role) => role.length > 0);
+
+  if (roles.length === 0) {
+    return ['ciudadano'];
+  }
+
+  return Array.from(new Set(roles));
+};
+
+const normalizeUser = (raw: unknown): User => {
+  if (!isRecord(raw)) {
+    throw new Error('Formato de usuario invalido en respuesta del backend.');
+  }
+
+  const id = parseNumber(raw.id);
+  if (id === null) {
+    throw new Error('Formato de usuario invalido: campo id faltante.');
+  }
+
+  const email = typeof raw.email === 'string' ? raw.email : '';
+  const username = typeof raw.username === 'string' ? raw.username : '';
+  const estado = normalizeStatus(raw.estado);
+  const createdAt = typeof raw.created_at === 'string' ? raw.created_at : undefined;
+
+  return {
+    id,
+    email,
+    username,
+    estado,
+    roles: normalizeRoles(raw.roles ?? raw.user_roles),
+    created_at: createdAt,
+  };
+};
+
+const buildPaginationMeta = (
+  rawMeta: unknown,
+  fallbackPage: number,
+  fallbackLimit: number,
+  dataLength: number,
+): PaginationMeta => {
+  if (!isRecord(rawMeta)) {
+    const total = dataLength;
+    const totalPages = total === 0 ? 0 : 1;
 
     return {
-      activeSessions: 12, // Mock: sesiones activas
-      pendingReports,
+      page: fallbackPage,
+      limit: fallbackLimit,
+      total,
+      totalPages,
+      hasNextPage: false,
+      hasPreviousPage: fallbackPage > 1,
     };
-  },
+  }
 
-  // Obtener lista de usuarios
-  // TODO: Reemplazar con endpoint real cuando esté disponible
-  async getUsers(): Promise<UserListItem[]> {
-    // Simular delay de red
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return mockUsers;
-  },
+  const page = Math.max(parseNumber(rawMeta.page) ?? fallbackPage, 1);
+  const limit = Math.min(Math.max(parseNumber(rawMeta.limit) ?? fallbackLimit, 1), MAX_LIMIT);
+  const total = Math.max(parseNumber(rawMeta.total) ?? dataLength, 0);
+  const totalPages = Math.max(
+    parseNumber(rawMeta.totalPages) ?? (total === 0 ? 0 : Math.ceil(total / limit)),
+    0,
+  );
 
-  // Obtener reportes pendientes
-  // TODO: Reemplazar con endpoint real cuando esté disponible
-  async getReports(): Promise<Report[]> {
-    // Simular delay de red
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return mockReports;
-  },
+  const hasNextPage = parseBoolean(rawMeta.hasNextPage) ?? page < totalPages;
+  const hasPreviousPage = parseBoolean(rawMeta.hasPreviousPage) ?? page > 1;
 
-  // Aprobar/verificar un reporte
-  // TODO: Reemplazar con endpoint real cuando esté disponible
-  async verifyReport(reportId: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const report = mockReports.find((r) => r.id === reportId);
-    if (report) {
-      report.estado = 'verificado';
+  return {
+    page,
+    limit,
+    total,
+    totalPages,
+    hasNextPage,
+    hasPreviousPage,
+  };
+};
+
+const toPaginatedUsers = (
+  payload: unknown,
+  fallbackPage: number,
+  fallbackLimit: number,
+): PaginatedResponse<User> => {
+  if (Array.isArray(payload)) {
+    const users = payload.map((row) => normalizeUser(row));
+
+    return {
+      data: users,
+      meta: buildPaginationMeta(undefined, fallbackPage, fallbackLimit, users.length),
+    };
+  }
+
+  if (!isRecord(payload) || !Array.isArray(payload.data)) {
+    throw new Error('Formato de paginacion invalido en respuesta de /usuarios.');
+  }
+
+  const users = payload.data.map((row) => normalizeUser(row));
+
+  return {
+    data: users,
+    meta: buildPaginationMeta(payload.meta, fallbackPage, fallbackLimit, users.length),
+  };
+};
+
+const toUserMutationResponse = (payload: unknown): User => {
+  if (isRecord(payload) && 'data' in payload) {
+    return normalizeUser(payload.data);
+  }
+
+  return normalizeUser(payload);
+};
+
+const toErrorMessage = (error: unknown): string => {
+  if (isRecord(error) && isRecord(error.response)) {
+    const status = error.response.status;
+    if (status === 401) {
+      return 'Tu sesion expiro. Inicia sesion nuevamente.';
     }
+    if (status === 403) {
+      return 'No tienes permisos para realizar esta accion.';
+    }
+
+    if (isRecord(error.response.data)) {
+      const message = error.response.data.message;
+      if (Array.isArray(message)) {
+        return message.join(', ');
+      }
+      if (typeof message === 'string') {
+        return message;
+      }
+    }
+  }
+
+  if (isRecord(error) && typeof error.message === 'string') {
+    return error.message;
+  }
+
+  return 'Error inesperado en servicio administrativo.';
+};
+
+const buildUsersQuery = (params: Partial<UserFilters>) => {
+  const query = new URLSearchParams();
+
+  const page = Math.max(params.page ?? DEFAULT_PAGE, 1);
+  const limit = Math.min(Math.max(params.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
+
+  query.set('page', String(page));
+  query.set('limit', String(limit));
+
+  const search = params.search?.trim();
+  if (search) {
+    query.set('search', search);
+  }
+
+  const role = params.role?.trim().toLowerCase();
+  if (role) {
+    query.set('rol', role === 'administrador' ? 'admin' : role);
+  }
+
+  const status = params.status?.trim().toLowerCase();
+  if (status) {
+    query.set('estado', status);
+  }
+
+  if (params.extra) {
+    for (const [key, value] of Object.entries(params.extra)) {
+      if (value !== undefined && value !== null && String(value).trim().length > 0) {
+        query.set(key, String(value));
+      }
+    }
+  }
+
+  return {
+    page,
+    limit,
+    queryString: query.toString(),
+  };
+};
+
+const adminService = {
+  async getUsers(params: Partial<UserFilters> = {}): Promise<PaginatedResponse<User>> {
+    const { queryString, page, limit } = buildUsersQuery(params);
+    const response = await api.get<unknown>(`/usuarios?${queryString}`);
+
+    return toPaginatedUsers(response.data, page, limit);
   },
 
-  // Rechazar un reporte
-  // TODO: Reemplazar con endpoint real cuando esté disponible
-  async rejectReport(reportId: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const report = mockReports.find((r) => r.id === reportId);
-    if (report) {
-      report.estado = 'rechazado';
-    }
+  async updateUserStatus(id: number, status: UpdateUserStatusPayload['estado']): Promise<User> {
+    const payload: UpdateUserStatusPayload = {
+      estado: status,
+    };
+
+    const response = await api.patch<unknown>(`/usuarios/${id}/estado`, payload);
+    return toUserMutationResponse(response.data);
   },
 
-  // Cambiar estado de usuario
-  // TODO: Reemplazar con endpoint real cuando esté disponible
-  async toggleUserStatus(userId: number, newStatus: string): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const user = mockUsers.find((u) => u.id === userId);
-    if (user) {
-      user.estado = newStatus;
-    }
+  async updateUserRole(id: number, role: UpdateUserRolePayload['rol']): Promise<User> {
+    const payload: UpdateUserRolePayload = {
+      rol: role,
+    };
+
+    const response = await api.patch<unknown>(`/usuarios/${id}/rol`, payload);
+    return toUserMutationResponse(response.data);
+  },
+
+  errorToMessage(error: unknown): string {
+    return toErrorMessage(error);
   },
 };
 

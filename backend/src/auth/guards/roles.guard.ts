@@ -8,6 +8,16 @@ import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { AuthenticatedUser } from '../strategies/jwt.strategy';
 
+const normalizeRoleAlias = (role: string): string => {
+  const normalized = role.trim().toLowerCase();
+
+  if (normalized === 'administrador') {
+    return 'admin';
+  }
+
+  return normalized;
+};
+
 /**
  * T20: Guard que verifica los roles del usuario autenticado.
  *
@@ -43,9 +53,9 @@ export class RolesGuard implements CanActivate {
       });
     }
 
-    // Normalizar roles del usuario y requeridos a lowercase para comparación
-    const userRoles = user.roles.map((r) => r.trim().toLowerCase());
-    const normalizedRequired = requiredRoles.map((r) => r.trim().toLowerCase());
+    // Normalizar roles y aliases comunes para comparación robusta.
+    const userRoles = user.roles.map((r) => normalizeRoleAlias(r));
+    const normalizedRequired = requiredRoles.map((r) => normalizeRoleAlias(r));
 
     // Verificar si hay intersección entre roles del usuario y roles requeridos
     const hasRole = normalizedRequired.some((role) => userRoles.includes(role));
