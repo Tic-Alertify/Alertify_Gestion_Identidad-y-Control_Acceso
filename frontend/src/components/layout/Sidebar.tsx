@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import { Bell, Home, FileText, LogOut } from 'lucide-react';
+import { Home, FileText, LogOut } from 'lucide-react';
 
 export default function Sidebar() {
   const { logout, user } = useAuth();
@@ -15,7 +15,7 @@ export default function Sidebar() {
     <aside className="admin-sidebar">
       <div className="admin-sidebar__brand">
         <div>
-          <Bell size={28} />
+          <img src="/icono.png" alt="Alertify logo" className="admin-sidebar__logo" />
           <span>Alertify</span>
         </div>
         <p>Panel Admin</p>

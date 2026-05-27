@@ -64,24 +64,33 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--admin-white);
   font-weight: 700;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .admin-sidebar__brand > div {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.admin-sidebar__brand img {
-  width: 84px;
-  height: 84px;
-  border-radius: 16px;
-  object-fit: cover;
+.admin-sidebar__brand > div span {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.admin-sidebar__logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  object-fit: contain;
   background: #0c1f3a;
-  padding: 10px;
+  padding: 8px;
 }
 
 .admin-sidebar__menu {
@@ -92,15 +101,21 @@ body {
 }
 
 .admin-sidebar__link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 16px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.5);
   color: var(--admin-white);
   text-decoration: none;
-  text-align: center;
   font-weight: 600;
   transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.admin-sidebar__link svg {
+  flex-shrink: 0;
 }
 
 .admin-sidebar__link:hover {
@@ -121,6 +136,15 @@ body {
   color: var(--admin-white);
   font-weight: 600;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.admin-sidebar__logout svg {
+  flex-shrink: 0;
 }
 
 .admin-sidebar__footer {
@@ -200,19 +224,30 @@ body {
   background: #f3f4f6;
   display: grid;
   place-items: center;
+  flex-shrink: 0;
+}
+
+.metric-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .metric-card__content h3 {
   margin: 0;
-  font-size: 1.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--admin-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   line-height: 1.2;
 }
 
 .metric-card__content strong {
-  display: inline-block;
-  margin-top: 8px;
   font-size: 2rem;
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--admin-text);
+  line-height: 1.1;
 }
 
 .admin-card {
@@ -320,6 +355,17 @@ body {
   color: var(--admin-white);
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.admin-users-search button svg,
+.admin-btn svg {
+  flex-shrink: 0;
 }
 
 .admin-users-search button:disabled,

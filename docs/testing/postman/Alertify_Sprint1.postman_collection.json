@@ -247,6 +247,7 @@
                   "// Guardar token para futuro uso",
                   "if (pm.response.code === 200) {",
                   "    pm.environment.set('access_token', pm.response.json().access_token);",
+                  "    pm.environment.set('refresh_token', pm.response.json().refresh_token);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -397,6 +398,290 @@
                   "    pm.expect(jsonData).to.have.property('requestId');",
                   "    pm.expect(jsonData).to.have.property('timestamp');",
                   "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rotación de Tokens / Sesiones",
+      "item": [
+        {
+          "name": "Test Sprint 2: Contrato TokenAuthenticator (/auth/refresh)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/auth/refresh",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["auth", "refresh"]
+            },
+            "description": "Prueba de soporte Sprint 2: Verifica el contrato (campos y tipos) exacto consumido por TokenAuthenticator (Móvil) para renovación transparente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Sprint 2 Contract: Response has valid access_token & refresh_token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('access_token');",
+                  "    pm.expect(jsonData.access_token).to.be.a('string').and.not.empty;",
+                  "    pm.expect(jsonData).to.have.property('refresh_token');",
+                  "    pm.expect(jsonData.refresh_token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.set('access_token', pm.response.json().access_token);",
+                  "    pm.environment.set('refresh_token', pm.response.json().refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test: Refresh token inválido (T12: 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"abc123invalid\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/auth/refresh",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["auth", "refresh"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('T12 Error structure contains AUTH_INVALID_TOKEN', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('code', 'AUTH_INVALID_TOKEN');",
+                  "    pm.expect(jsonData).to.have.property('path', '/auth/refresh');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gestión de Usuarios (Admin)",
+      "item": [
+        {
+          "name": "Test: Cambiar estado a inactivo (T26: 200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"inactivo\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/usuarios/1/estado",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["usuarios", "1", "estado"]
+            },
+            "description": "PREREQUISITO: Reemplazar el /1/ por el ID de un usuario existente. El token JWT ({{access_token}}) debe pertenecer a un admin."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response returns safe user format without password', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('estado', 'inactivo');",
+                  "    pm.expect(jsonData).to.not.have.property('password_hash');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test: Cambiar rol a admin (T25: 200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rol\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/usuarios/1/rol",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["usuarios", "1", "rol"]
+            },
+            "description": "PREREQUISITO: Reemplazar el /1/ por el ID de un usuario existente. El token JWT ({{access_token}}) debe pertenecer a un admin."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains updated role', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.roles).to.include('admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sprint 3: Logout y Blacklist",
+      "item": [
+        {
+          "name": "Test: Cerrar Sesión (Logout exitoso)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/auth/logout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["auth", "logout"]
+            },
+            "description": "Prueba de Sprint 3: Hacer POST a /auth/logout para revocar el refresh_token y agregar el access_token actual a la JWT_BLACKLIST."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 (Logout exitoso)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test: Acceso rechazado con JWT en Blacklist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/usuarios",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["usuarios"]
+            },
+            "description": "Prueba de Sprint 3: Intentar acceder a endpoint protegido usando un token de la JWT_BLACKLIST. Debe retornar 401 AUTH_TOKEN_REVOKED."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 (No Autorizado)', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Token is marked as revoked in JWT_BLACKLIST', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.code).to.equal('AUTH_TOKEN_REVOKED');",
+                  "});",
+                  "",
+                  "// Limite del Sprint 3: Al finalizar limpiamos las variables de entorno",
+                  "pm.environment.unset('access_token');",
+                  "pm.environment.unset('refresh_token');"
                 ],
                 "type": "text/javascript"
               }
